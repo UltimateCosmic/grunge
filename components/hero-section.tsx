@@ -98,7 +98,7 @@ export default function HeroSection() {
                   className="h-20 md:h-24 w-auto object-contain"
                 />
               </div>
-              <div className="flex items-center space-x-4 text-lg text-white">
+              <div className="flex flex-col md:flex-row md:items-center space-y-2 md:space-y-0 md:space-x-4 text-lg text-white">
                 <div className="flex items-center space-x-2">
                   <Calendar className="h-5 w-5" style={{ color: currentConcert.color }} />
                   <span>{currentConcert.date}</span>
@@ -108,23 +108,20 @@ export default function HeroSection() {
                   <span>
                     {currentConcert.venue}, {currentConcert.city}
                   </span>
-                  <div>
-                    {currentConcert.ticketProvider && (
-                      <span className="ml-2 flex items-center space-x-2" style={{ height: '2rem', maxHeight: '2rem' }}>
-                        {/* Ícono de ticket */}
-                        <Ticket className="h-5 w-5" style={{ color: currentConcert.color }} />
-                        <Image
-                          src={`/ticket-provider/${currentConcert.ticketProvider.toLowerCase()}.png`}
-                          alt={currentConcert.ticketProvider}
-                          width={80}
-                          height={17}
-                          className="inline-block align-middle h-8 w-auto object-contain"
-                          style={{ maxHeight: '2rem', height: '1rem', width: 'auto' }}
-                        />
-                      </span>
-                    )}
-                  </div>
                 </div>
+                {currentConcert.ticketProvider && (
+                  <div className="flex items-center space-x-2">
+                    <Ticket className="h-5 w-5" style={{ color: currentConcert.color }} />
+                    <Image
+                      src={`/ticket-provider/${currentConcert.ticketProvider.toLowerCase()}.png`}
+                      alt={currentConcert.ticketProvider}
+                      width={80}
+                      height={17}
+                      className="inline-block align-middle h-8 w-auto object-contain"
+                      style={{ maxHeight: '2rem', height: '1rem', width: 'auto' }}
+                    />
+                  </div>
+                )}
               </div>
             </div>
 
@@ -133,7 +130,11 @@ export default function HeroSection() {
             </p>
 
             <div className="flex space-x-4">
-              <Button size="lg" style={{ backgroundColor: currentConcert.color }} className="hover:opacity-90 text-white px-8 border-0">
+              <Button
+                size="lg"
+                style={{ backgroundColor: currentConcert.color }}
+                className="text-white px-8 border-0 shadow-md transition-all duration-200 hover:scale-105 hover:shadow-lg hover:brightness-110 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-white"
+              >
                 Ver Merch Oficial
               </Button>
               <Button

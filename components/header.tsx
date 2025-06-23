@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 export default function Header() {
   return (
     <header className="bg-black border-b border-gray-800 sticky top-0 z-50">
-      <div className="container mx-auto px-0"> {/* Quitamos padding izquierdo */}
+      <div className="container mx-auto px-4 md:px-0"> {/* Padding lateral solo en mobile */}
         <div className="flex items-center h-16">
           {/* Logo a la izquierda, ancho fijo */}
           <div className="flex-shrink-0 w-40 flex items-center justify-start">
@@ -47,8 +47,12 @@ export default function Header() {
                 3
               </span>
             </Button>
-            <Button variant="ghost" size="icon" className="md:hidden text-gray-300 hover:text-white">
-              <Menu className="h-5 w-5" />
+            <Button
+              variant="ghost"
+              size="icon"
+              className="md:hidden text-gray-300 hover:text-white focus:text-white focus:bg-gray-800 focus-visible:text-white focus-visible:bg-gray-800"
+            >
+              <Menu className="h-5 w-5 transition-colors group-hover:text-white group-focus:text-white" />
             </Button>
           </div>
         </div>
