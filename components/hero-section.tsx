@@ -3,20 +3,24 @@
 import { useState, useEffect } from "react"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
-import { ChevronLeft, ChevronRight, Calendar, MapPin } from "lucide-react"
+import { ChevronLeft, ChevronRight, Calendar, MapPin, Ticket } from "lucide-react"
 
 const upcomingConcerts = [
   {
     id: 1,
     band: "Guns N' Roses",
-    logo: "/placeholder.svg?height=120&width=300",
+    logo: "/upcoming-concerts/guns-n-roses/logo.png",
     date: "5 de Noviembre",
     venue: "Estadio Nacional",
-    city: "Santiago",
-    image: "/placeholder.svg?height=600&width=800",
+    city: "Lima",
+    image: "/upcoming-concerts/guns-n-roses/banner.png",
     merchPreview: "/placeholder.svg?height=400&width=600",
+    color: "#ff0000", // Amarillo dorado Guns N' Roses
+    ticketProvider: "Teleticket",
+    ticketUrl: "https://teleticket.com.pe/guns-n-roses-lima-2025",
+    message: "¡No te pierdas el regreso de Guns N' Roses a Lima! Consigue el merch oficial antes de que se agote.",
   },
-  {
+  /*{
     id: 2,
     band: "Arctic Monkeys",
     logo: "/placeholder.svg?height=120&width=300",
@@ -25,6 +29,10 @@ const upcomingConcerts = [
     city: "Buenos Aires",
     image: "/placeholder.svg?height=600&width=800",
     merchPreview: "/placeholder.svg?height=400&width=600",
+    color: "#22223b", // Azul oscuro Arctic Monkeys
+    ticketProvider: "Ticketmaster",
+    ticketUrl: "https://ticketmaster.com.ar/arctic-monkeys-buenos-aires-2025",
+    message: "¡Vive la experiencia Arctic Monkeys en Buenos Aires! No te quedes sin tu merch exclusivo.",
   },
   {
     id: 3,
@@ -35,7 +43,11 @@ const upcomingConcerts = [
     city: "Buenos Aires",
     image: "/placeholder.svg?height=600&width=800",
     merchPreview: "/placeholder.svg?height=400&width=600",
-  },
+    color: "#f15a24", // Naranja The Strokes
+    ticketProvider: "Ticketek",
+    ticketUrl: "https://ticketek.com.ar/the-strokes-buenos-aires-2025",
+    message: "¡The Strokes en vivo! Asegura tu entrada y tu merch oficial en Luna Park.",
+  },*/
 ]
 
 export default function HeroSection() {
@@ -88,53 +100,76 @@ export default function HeroSection() {
               </div>
               <div className="flex items-center space-x-4 text-lg text-white">
                 <div className="flex items-center space-x-2">
-                  <Calendar className="h-5 w-5 text-brand-500" />
+                  <Calendar className="h-5 w-5" style={{ color: currentConcert.color }} />
                   <span>{currentConcert.date}</span>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <MapPin className="h-5 w-5 text-brand-500" />
+                  <MapPin className="h-5 w-5" style={{ color: currentConcert.color }} />
                   <span>
                     {currentConcert.venue}, {currentConcert.city}
                   </span>
+                  <div>
+                    {currentConcert.ticketProvider && (
+                      <span className="ml-2 flex items-center space-x-2" style={{ height: '2rem', maxHeight: '2rem' }}>
+                        {/* Ícono de ticket */}
+                        <Ticket className="h-5 w-5" style={{ color: currentConcert.color }} />
+                        <Image
+                          src={`/ticket-provider/${currentConcert.ticketProvider.toLowerCase()}.png`}
+                          alt={currentConcert.ticketProvider}
+                          width={80}
+                          height={17}
+                          className="inline-block align-middle h-8 w-auto object-contain"
+                          style={{ maxHeight: '2rem', height: '1rem', width: 'auto' }}
+                        />
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
 
             <p className="text-xl text-gray-200">
-              ¡No te pierdas el concierto del año! Consigue el merch oficial antes de que se agote.
+              {currentConcert.message}
             </p>
 
             <div className="flex space-x-4">
-              <Button size="lg" className="bg-brand-500 hover:bg-brand-600 text-white px-8">
+              <Button size="lg" style={{ backgroundColor: currentConcert.color }} className="hover:opacity-90 text-white px-8 border-0">
                 Ver Merch Oficial
               </Button>
               <Button
                 variant="outline"
                 size="lg"
-                className="border-white text-white hover:bg-white hover:text-black bg-transparent"
+                className="border-white text-white hover:bg-white hover:text-black bg-transparent flex items-center space-x-2 group"
               >
-                Más Info del Concierto
+                <Image
+                  src={`/ticket-provider/${currentConcert.ticketProvider.toLowerCase()}.png`}
+                  alt={currentConcert.ticketProvider}
+                  width={80}
+                  height={17}
+                  className="inline-block align-middle h-8 w-auto object-contain transition-all duration-200 group-hover:filter-none group-hover:invert-0 filter brightness-0 invert"
+                  style={{ maxHeight: '2rem', height: '1rem', width: 'auto' }}
+                />
               </Button>
             </div>
           </div>
 
           {/* Right side - Merch Preview */}
-          <div className="hidden md:block">
-            <div className="relative">
-              <Image
-                src={currentConcert.merchPreview || "/placeholder.svg"}
-                alt={`${currentConcert.band} merchandise`}
-                width={600}
-                height={400}
-                className="rounded-lg shadow-2xl"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent rounded-lg" />
-              <div className="absolute bottom-4 left-4 text-white">
-                <p className="text-sm">Merch Oficial Disponible</p>
-                <p className="text-xs text-gray-300">Camisetas, hoodies, posters y más</p>
-              </div>
-            </div>
-          </div>
+          {/*<div className="hidden md:block">
+						<div className="relative">
+							<Image
+								src={currentConcert.merchPreview || "/placeholder.svg"}
+								alt={`${currentConcert.band} merchandise`}
+								width={600}
+								height={400}
+								className="rounded-lg shadow-2xl"
+							/>
+							<div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent rounded-lg" />
+							<div className="absolute bottom-4 left-4 text-white">
+								<p className="text-sm">Merch Oficial Disponible</p>
+								<p className="text-xs text-gray-300">Camisetas, hoodies, posters y más</p>
+							</div>
+						</div>
+					</div>*/}
         </div>
       </div>
 
@@ -158,9 +193,8 @@ export default function HeroSection() {
           <button
             key={index}
             onClick={() => setCurrentSlide(index)}
-            className={`w-3 h-3 rounded-full transition-colors ${
-              index === currentSlide ? "bg-brand-500" : "bg-white/50"
-            }`}
+            className={`w-3 h-3 rounded-full transition-colors ${index === currentSlide ? "bg-brand-500" : "bg-white/50"
+              }`}
           />
         ))}
       </div>
