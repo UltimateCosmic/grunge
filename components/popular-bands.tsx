@@ -1,4 +1,6 @@
+"use client"
 import Image from "next/image"
+import { useRouter } from "next/navigation"
 
 const popularBands = [
   { name: "The Beatles", logo: "/popular-bands/Beatles_170x100.avif" },
@@ -22,6 +24,10 @@ const popularBands = [
 ]
 
 export default function PopularBands() {
+  const router = useRouter()
+  // Mapeo de nombre de banda a slug para query
+  const bandSlug = (name: string) => name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "")
+
   return (
     <section className="py-16 bg-gray-50">
       <div className="container mx-auto px-4">
@@ -37,7 +43,12 @@ export default function PopularBands() {
           <div className="flex animate-scroll space-x-12 items-center">
             {/* First set */}
             {popularBands.map((band, index) => (
-              <div key={`first-${index}`} className="flex-shrink-0 max-h-24 flex items-center p-[10px]">
+              <div
+                key={`first-${index}`}
+                className="flex-shrink-0 max-h-24 flex items-center p-[10px] cursor-pointer"
+                onClick={() => router.push(`/productos?banda=${bandSlug(band.name)}`)}
+                title={`Ver productos de ${band.name}`}
+              >
                 <Image
                   src={band.logo}
                   alt={band.name}
@@ -51,7 +62,12 @@ export default function PopularBands() {
             ))}
             {/* Duplicate set for seamless loop */}
             {popularBands.map((band, index) => (
-              <div key={`second-${index}`} className="flex-shrink-0 max-h-24 flex items-center p-[10px]">
+              <div
+                key={`second-${index}`}
+                className="flex-shrink-0 max-h-24 flex items-center p-[10px] cursor-pointer"
+                onClick={() => router.push(`/productos?banda=${bandSlug(band.name)}`)}
+                title={`Ver productos de ${band.name}`}
+              >
                 <Image
                   src={band.logo}
                   alt={band.name}

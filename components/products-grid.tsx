@@ -1,178 +1,411 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import Image from "next/image"
-import { Star, ShoppingCart, Filter } from "lucide-react"
+import { useRouter, useSearchParams } from "next/navigation"
+import { Star, ShoppingCart, Filter, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Slider } from "@/components/ui/slider"
 
-const bands = [
-  "Arctic Monkeys",
-  "The Strokes",
-  "Radiohead",
-  "Tame Impala",
-  "Foo Fighters",
-  "Red Hot Chili Peppers",
-  "Pearl Jam",
-  "Nirvana",
-]
-
-const productTypes = ["Camisetas", "Hoodies", "Discos", "Accesorios", "Posters", "Ediciones Limitadas"]
-
-const sizes = ["XS", "S", "M", "L", "XL", "XXL"]
-
-const allProducts = [
-  {
-    id: 1,
-    name: "Arctic Monkeys - AM Camiseta",
-    band: "Arctic Monkeys",
-    type: "Camisetas",
-    price: 29.99,
-    originalPrice: 39.99,
-    image: "/placeholder.svg?height=300&width=300",
-    rating: 4.8,
-    reviews: 124,
-    isOnSale: true,
-    sizes: ["S", "M", "L", "XL"],
-  },
-  {
-    id: 2,
-    name: "The Strokes - Hoodie Oficial",
-    band: "The Strokes",
-    type: "Hoodies",
-    price: 59.99,
-    image: "/placeholder.svg?height=300&width=300",
-    rating: 4.9,
-    reviews: 89,
-    isOnSale: false,
-    sizes: ["M", "L", "XL", "XXL"],
-  },
-  {
-    id: 3,
-    name: "Radiohead - OK Computer Vinilo",
-    band: "Radiohead",
-    type: "Discos",
-    price: 34.99,
-    image: "/placeholder.svg?height=300&width=300",
-    rating: 5.0,
-    reviews: 256,
-    isOnSale: false,
-    sizes: [],
-  },
-  {
-    id: 4,
-    name: "Tame Impala - Currents Poster",
-    band: "Tame Impala",
-    type: "Posters",
-    price: 19.99,
-    originalPrice: 24.99,
-    image: "/placeholder.svg?height=300&width=300",
-    rating: 4.7,
-    reviews: 67,
-    isOnSale: true,
-    sizes: [],
-  },
-  {
-    id: 5,
-    name: "Foo Fighters - Logo Camiseta",
-    band: "Foo Fighters",
-    type: "Camisetas",
-    price: 27.99,
-    image: "/placeholder.svg?height=300&width=300",
-    rating: 4.6,
-    reviews: 143,
-    isOnSale: false,
-    sizes: ["XS", "S", "M", "L", "XL"],
-  },
-  {
-    id: 6,
-    name: "RHCP - Californication Hoodie",
-    band: "Red Hot Chili Peppers",
-    type: "Hoodies",
-    price: 65.99,
-    originalPrice: 79.99,
-    image: "/placeholder.svg?height=300&width=300",
-    rating: 4.8,
-    reviews: 98,
-    isOnSale: true,
-    sizes: ["S", "M", "L", "XL", "XXL"],
-  },
-  {
-    id: 7,
-    name: "Pearl Jam - Ten Vinilo Edición Limitada",
-    band: "Pearl Jam",
-    type: "Ediciones Limitadas",
-    price: 89.99,
-    image: "/placeholder.svg?height=300&width=300",
-    rating: 5.0,
-    reviews: 45,
-    isOnSale: false,
-    sizes: [],
-  },
-  {
-    id: 8,
-    name: "Nirvana - Nevermind Gorra",
-    band: "Nirvana",
-    type: "Accesorios",
-    price: 24.99,
-    image: "/placeholder.svg?height=300&width=300",
-    rating: 4.5,
-    reviews: 78,
-    isOnSale: false,
-    sizes: ["Única"],
-  },
-]
+// Endpoint global de búsqueda Findify (devuelve productos y facets globales)
+const API_SEARCH = "https://api-v3.findify.io/v3/search/" +
+  "?user%5Buid%5D=2BFa9WflrlWkujYL" +
+  "&user%5Bsid%5D=Qe4lb3rBazBvmjwo" +
+  "&user%5Bpersist%5D=true" +
+  "&user%5Bexist%5D=true" +
+  "&t_client=1751442362499" +
+  "&key=5e2c787d-30dd-43c6-9eed-9db5a4998c6f" +
+  "&slot=findify-search" + // Agregamos slot para mejorar caching
+  "&max_count=10000" // Limitamos el total de productos a 10,000
 
 export default function ProductsGrid() {
-  const [selectedBands, setSelectedBands] = useState<string[]>([])
+  const searchParams = useSearchParams()
+  const router = useRouter()
+  const bandaSlug = searchParams.get("banda")
+
+  const [products, setProducts] = useState<any[]>([])
+  const [facets, setFacets] = useState<any[]>([])
+  const [selectedBands, setSelectedBands] = useState<string[]>(bandaSlug ? [bandaSlug] : [])
   const [selectedTypes, setSelectedTypes] = useState<string[]>([])
   const [selectedSizes, setSelectedSizes] = useState<string[]>([])
   const [priceRange, setPriceRange] = useState([0, 100])
   const [showFilters, setShowFilters] = useState(false)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalProducts, setTotalProducts] = useState(0)
+  const [isLoading, setIsLoading] = useState(true) // Estado de carga
+  const [isInitialLoad, setIsInitialLoad] = useState(true) // Estado para controlar la carga inicial
+  const [requestCache, setRequestCache] = useState<{[key: string]: any}>({}) // Cache de respuestas
+  const PRODUCTS_PER_PAGE = 24
 
-  const filteredProducts = allProducts.filter((product) => {
-    const bandMatch = selectedBands.length === 0 || selectedBands.includes(product.band)
-    const typeMatch = selectedTypes.length === 0 || selectedTypes.includes(product.type)
-    const sizeMatch =
-      selectedSizes.length === 0 ||
-      (product.sizes.length > 0 && selectedSizes.some((size) => product.sizes.includes(size))) ||
-      product.sizes.length === 0
-    const priceMatch = product.price >= priceRange[0] && product.price <= priceRange[1]
+  // Filtros dinámicos (ahora como arrays de objetos { value, count })
+  const [dynamicBands, setDynamicBands] = useState<{ value: string, count: number }[]>([])
+  const [dynamicTypes, setDynamicTypes] = useState<{ value: string, count: number }[]>([])
+  const [dynamicSizes, setDynamicSizes] = useState<{ value: string, count: number }[]>([])
+  const [dynamicPrice, setDynamicPrice] = useState<[number, number]>([0, 100])
+  const [tempPriceRange, setTempPriceRange] = useState<[number, number]>([0, 100]) // Valor temporal para debounce
 
-    return bandMatch && typeMatch && sizeMatch && priceMatch
-  })
+  // Estados para controlar cuántos elementos mostrar en cada filtro
+  const [expandedBands, setExpandedBands] = useState(false)
+  const [expandedTypes, setExpandedTypes] = useState(false)
+  const [expandedSizes, setExpandedSizes] = useState(false)
+  // Estados para searchbar de filtros
+  const [bandSearch, setBandSearch] = useState("");
+  const [typeSearch, setTypeSearch] = useState("");
+  const [sizeSearch, setSizeSearch] = useState("");
+  // Límite inicial de elementos a mostrar por filtro
+  const INITIAL_FILTER_LIMIT = 6
+
+  // Fetch con filtros y paginación
+  // Función para actualizar filtros dinámicos y limpiar los que ya no están disponibles
+  const updateDynamicFilters = useCallback((json: any) => {
+    console.log("Actualizando filtros dinámicos con nueva respuesta de API");
+    
+    // Poblar dinámicamente bandas, tipos y tallas
+    const bandFacet = json.facets?.find((f: any) => f.name === "brand");
+    const newBands = bandFacet ? bandFacet.values : [];
+    setDynamicBands(newBands);
+    
+    const apparelFacet = json.facets?.find((f: any) => f.name === "custom_fields.apparel");
+    const newTypes = apparelFacet ? apparelFacet.values : [];
+    setDynamicTypes(newTypes);
+    
+    const sizeFacet = json.facets?.find((f: any) => f.name === "size");
+    const newSizes = sizeFacet ? sizeFacet.values : [];
+    setDynamicSizes(newSizes);
+    
+    // Rango de precio dinámico
+    const priceFacet = json.facets?.find((f: any) => f.name === "price");
+    if (priceFacet && priceFacet.min != null && priceFacet.max != null) {
+      const min = Math.floor(priceFacet.min);
+      const max = Math.ceil(priceFacet.max);
+      setDynamicPrice([min, max]);
+    }
+
+    // Limpiar filtros seleccionados que ya no existen en los resultados actuales
+    // Solo después de la carga inicial
+    if (!isInitialLoad) {
+      // Preparar valores disponibles
+      const availableBandValues = newBands.map((b: any) => b.value);
+      const availableTypeValues = newTypes.map((t: any) => t.value);
+      const availableSizeValues = newSizes.map((s: any) => s.value);
+      
+      // Limpiar bandas que ya no están disponibles
+      if (selectedBands.length > 0) {
+        const validBands = selectedBands.filter(band => availableBandValues.includes(band));
+        if (validBands.length !== selectedBands.length) {
+          console.log("Limpiando bandas que ya no están disponibles:", 
+                     selectedBands, "->", validBands);
+          setSelectedBands(validBands);
+        }
+      }
+      
+      // Limpiar tipos que ya no están disponibles
+      if (selectedTypes.length > 0) {
+        const validTypes = selectedTypes.filter(type => availableTypeValues.includes(type));
+        if (validTypes.length !== selectedTypes.length) {
+          console.log("Limpiando tipos que ya no están disponibles:", 
+                     selectedTypes, "->", validTypes);
+          setSelectedTypes(validTypes);
+        }
+      }
+      
+      // Limpiar tallas que ya no están disponibles
+      if (selectedSizes.length > 0) {
+        const validSizes = selectedSizes.filter(size => availableSizeValues.includes(size));
+        if (validSizes.length !== selectedSizes.length) {
+          console.log("Limpiando tallas que ya no están disponibles:", 
+                     selectedSizes, "->", validSizes);
+          setSelectedSizes(validSizes);
+        }
+      }
+      
+      // Ajustar rango de precio si es necesario
+      if (priceFacet && priceFacet.min != null && priceFacet.max != null) {
+        const min = Math.floor(priceFacet.min);
+        const max = Math.ceil(priceFacet.max);
+        
+        setPriceRange(prev => {
+          // Si el rango actual está fuera del nuevo rango disponible, ajustarlo
+          if (prev[0] < min || prev[1] > max) {
+            const newRange = [
+              Math.max(prev[0], min),
+              Math.min(prev[1], max)
+            ];
+            console.log("Ajustando rango de precio:", prev, "->", newRange);
+            return newRange;
+          }
+          return prev;
+        });
+        
+        setTempPriceRange(prev => {
+          if (prev[0] < min || prev[1] > max) {
+            return [
+              Math.max(prev[0], min),
+              Math.min(prev[1], max)
+            ];
+          }
+          return prev;
+        });
+      }
+    }
+  }, [isInitialLoad, selectedBands, selectedTypes, selectedSizes]);
+
+  useEffect(() => {
+    // Crear identificador para cancelar peticiones en curso si es necesario
+    let isMounted = true;
+    let controller: AbortController | null = null;
+
+    async function fetchProducts() {
+      try {
+        // Cancelar petición previa si existe
+        if (controller) {
+          controller.abort();
+        }
+        controller = new AbortController();
+        const signal = controller.signal;
+        
+        setIsLoading(true) // Mostrar indicador de carga
+        
+        const offset = (currentPage - 1) * PRODUCTS_PER_PAGE
+        // Construir filtros para la API
+        const filters: any = []
+        if (selectedBands.length > 0) {
+          filters.push({ name: "brand", values: selectedBands })
+        }
+        if (selectedTypes.length > 0) {
+          filters.push({ name: "custom_fields.apparel", values: selectedTypes })
+        }
+        if (selectedSizes.length > 0) {
+          filters.push({ name: "size", values: selectedSizes })
+        }
+        // Añadir filtro de precio
+        if (priceRange[0] > dynamicPrice[0] || priceRange[1] < dynamicPrice[1]) {
+          filters.push({ name: "price", from: priceRange[0], to: priceRange[1] })
+        }
+        // Construir query string de filtros
+        let filterQuery = ""
+        if (filters.length > 0) {
+          filterQuery = "&filters=" + encodeURIComponent(JSON.stringify(filters))
+        }
+        
+        // Construir clave única para esta combinación de filtros y página
+        const cacheKey = `p${offset}_f${JSON.stringify(filters)}`
+        
+        // Verificar si tenemos esta respuesta en caché
+        if (requestCache[cacheKey]) {
+          console.log("Usando respuesta en caché para:", cacheKey);
+          const cachedData = requestCache[cacheKey];
+          
+          if (isMounted) {
+            setProducts(cachedData.items || []);
+            setTotalProducts(cachedData.meta?.total || 0);
+            setFacets(cachedData.facets || []);
+            
+            // Siempre actualizar filtros dinámicos con la respuesta más reciente
+            updateDynamicFilters(cachedData);
+            
+            // Actualizar rango de precio solo en carga inicial sin filtros
+            if (isInitialLoad && 
+                selectedBands.length === 0 && 
+                selectedTypes.length === 0 && 
+                selectedSizes.length === 0) {
+              const priceFacet = cachedData.facets?.find((f: any) => f.name === "price")
+              if (priceFacet?.min != null && priceFacet?.max != null) {
+                const min = Math.floor(priceFacet.min);
+                const max = Math.ceil(priceFacet.max);
+                setPriceRange([min, max]);
+                setTempPriceRange([min, max]);
+              }
+            }
+            
+            if (isInitialLoad) {
+              setIsInitialLoad(false);
+            }
+            
+            setIsLoading(false);
+          }
+          return;
+        }
+        
+        const url = `${API_SEARCH}&limit=${PRODUCTS_PER_PAGE}&offset=${offset}${filterQuery}`
+        console.log("Fetching:", url);
+        
+        try {
+          const res = await fetch(url, { signal });
+          
+          if (!isMounted) return;
+          
+          const json = await res.json();
+          
+          // Guardar en caché
+          setRequestCache(prev => ({
+            ...prev,
+            [cacheKey]: json
+          }));
+          
+          if (isMounted) {
+            setProducts(json.items || []);
+            setTotalProducts(json.meta?.total || 0);
+            setFacets(json.facets || []);
+            updateDynamicFilters(json);
+            
+            // Actualizar rango de precio solo en carga inicial sin filtros
+            if (isInitialLoad && 
+                selectedBands.length === 0 && 
+                selectedTypes.length === 0 && 
+                selectedSizes.length === 0) {
+              const priceFacet = json.facets?.find((f: any) => f.name === "price")
+              if (priceFacet?.min != null && priceFacet?.max != null) {
+                const min = Math.floor(priceFacet.min);
+                const max = Math.ceil(priceFacet.max);
+                setPriceRange([min, max]);
+                setTempPriceRange([min, max]);
+              }
+            }
+            
+            // Marcar que ya no es la carga inicial después del primer fetch
+            if (isInitialLoad) {
+              setIsInitialLoad(false);
+            }
+          }
+        } catch (fetchError) {
+          if (isMounted) {
+            // Verificar si es un error de AbortController
+            const isAbortError = fetchError instanceof Error && fetchError.name === 'AbortError';
+            if (!isAbortError) {
+              console.error("Error fetching products:", fetchError);
+            }
+          }
+        }
+      } catch (error) {
+        console.error("Error in fetch process:", error);
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    }
+    
+    fetchProducts()
+
+    // Limpiar si el componente se desmonta
+    return () => {
+      isMounted = false;
+      if (controller) {
+        controller.abort();
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPage, selectedBands, selectedTypes, selectedSizes, priceRange])
+
+  // Esta función ahora se maneja directamente en updateDynamicFilters
+  // para evitar múltiples actualizaciones y reducir las dependencias
+
+  // Función pura para mapear productos (fuera del useMemo)
+  const mapProduct = (item: any) => ({
+    id: item.id,
+    name: item.title,
+    band: item.brand, // Usar el valor tal cual viene de la API
+    type: typeof item.custom_fields?.apparel === "string" ? item.custom_fields.apparel : Array.isArray(item.custom_fields?.apparel) ? item.custom_fields.apparel[0] : "",
+    price: Array.isArray(item.price) ? item.price[0] : (typeof item.price === "number" ? item.price : 0),
+    originalPrice: item.compare_at || null,
+    image: item.image_url || "/placeholder.svg?height=300&width=300",
+    rating: typeof item.rating === "number" ? item.rating : 0,
+    reviews: typeof item.reviews === "number" ? item.reviews : 0,
+    isOnSale: Array.isArray(item.discount) && item.discount.length > 0,
+    sizes: Array.isArray(item.size) ? item.size : typeof item.size === "string" ? [item.size] : Array.isArray(item.custom_fields?.variant_title) ? item.custom_fields.variant_title : typeof item.custom_fields?.variant_title === "string" ? [item.custom_fields.variant_title] : [],
+    url: item.product_url ? `https://www.bandmerch.com${item.product_url}` : undefined,
+  });
+
+  // Mapeo de productos de la API (optimizado con useMemo)
+  const mappedProducts = useMemo(() => {
+    return products.map(mapProduct);
+  }, [products]);
 
   const handleBandChange = (band: string, checked: boolean) => {
+    console.log(`Cambiando filtro de banda ${band} a ${checked ? 'seleccionado' : 'no seleccionado'}`);
     if (checked) {
-      setSelectedBands([...selectedBands, band])
+      setSelectedBands(prev => [...prev, band]);
     } else {
-      setSelectedBands(selectedBands.filter((b) => b !== band))
+      setSelectedBands(prev => prev.filter((b) => b !== band));
     }
+    // Resetear página a la primera al cambiar filtros
+    setCurrentPage(1);
   }
 
   const handleTypeChange = (type: string, checked: boolean) => {
+    console.log(`Cambiando filtro de tipo ${type} a ${checked ? 'seleccionado' : 'no seleccionado'}`);
     if (checked) {
-      setSelectedTypes([...selectedTypes, type])
+      setSelectedTypes(prev => [...prev, type]);
     } else {
-      setSelectedTypes(selectedTypes.filter((t) => t !== type))
+      setSelectedTypes(prev => prev.filter((t) => t !== type));
     }
+    // Resetear página a la primera al cambiar filtros
+    setCurrentPage(1);
   }
 
   const handleSizeChange = (size: string, checked: boolean) => {
+    console.log(`Cambiando filtro de talla ${size} a ${checked ? 'seleccionado' : 'no seleccionado'}`);
     if (checked) {
-      setSelectedSizes([...selectedSizes, size])
+      setSelectedSizes(prev => [...prev, size]);
     } else {
-      setSelectedSizes(selectedSizes.filter((s) => s !== size))
+      setSelectedSizes(prev => prev.filter((s) => s !== size));
     }
+    // Resetear página a la primera al cambiar filtros
+    setCurrentPage(1);
   }
 
   const clearAllFilters = () => {
-    setSelectedBands([])
-    setSelectedTypes([])
-    setSelectedSizes([])
-    setPriceRange([0, 100])
+    console.log("Limpiando todos los filtros");
+    setSelectedBands([]);
+    setSelectedTypes([]);
+    setSelectedSizes([]);
+    setPriceRange([...dynamicPrice]); // Crear una copia para asegurar un nuevo objeto
+    setTempPriceRange([...dynamicPrice]);
+    setCurrentPage(1);
   }
+
+  // Paginación
+  const totalPages = Math.ceil(totalProducts / PRODUCTS_PER_PAGE)
+  const handlePageChange = (page: number) => {
+    if (page >= 1 && page <= totalPages && page !== currentPage) {
+      setCurrentPage(page)
+    }
+  }
+
+  // Debounce para el slider de precio (con referencia para evitar loops)
+  const debouncePriceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  
+  const debouncePriceChange = useCallback((value: number[]) => {
+    // Actualizar el valor temporal inmediatamente para UI
+    setTempPriceRange([value[0], value[1]]);
+    
+    // Limpiar timer previo
+    if (debouncePriceTimerRef.current) {
+      clearTimeout(debouncePriceTimerRef.current);
+    }
+    
+    // Crear nuevo timer
+    debouncePriceTimerRef.current = setTimeout(() => {
+      console.log(`Aplicando filtro de precio: $${value[0]} - $${value[1]}`);
+      setPriceRange([value[0], value[1]]);
+      setCurrentPage(1);
+      debouncePriceTimerRef.current = null;
+    }, 500); // Esperar 500ms antes de aplicar el filtro
+  }, [])
+
+  // Títulos dinámicos para metadata (con deps mínimas)
+  const pageTitle = useMemo(() => {
+    if (selectedBands.length > 0) {
+      return `Productos de ${selectedBands.join(', ')}`;
+    } else if (selectedTypes.length > 0) {
+      return `${selectedTypes.join(', ')}`;
+    } else {
+      return "Todos los productos";
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [JSON.stringify(selectedBands), JSON.stringify(selectedTypes)]);
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -181,103 +414,280 @@ export default function ProductsGrid() {
         <div className="lg:hidden">
           <Button
             onClick={() => setShowFilters(!showFilters)}
-            className="w-full bg-brand-500 hover:bg-brand-600 text-white"
+            className="w-full bg-brand-500 hover:bg-brand-600 text-white relative"
+            disabled={isLoading}
           >
             <Filter className="h-4 w-4 mr-2" />
             {showFilters ? "Ocultar Filtros" : "Mostrar Filtros"}
+            {(selectedBands.length > 0 || selectedTypes.length > 0 || selectedSizes.length > 0 || 
+              priceRange[0] > dynamicPrice[0] || priceRange[1] < dynamicPrice[1]) && (
+              <span className="absolute top-0 right-0 -mt-1 -mr-1 bg-red-500 text-white w-5 h-5 rounded-full flex items-center justify-center text-xs">
+                {selectedBands.length + selectedTypes.length + selectedSizes.length +
+                 (priceRange[0] > dynamicPrice[0] || priceRange[1] < dynamicPrice[1] ? 1 : 0)}
+              </span>
+            )}
           </Button>
         </div>
 
         {/* Filters Sidebar */}
         <div className={`lg:w-1/4 ${showFilters ? "block" : "hidden lg:block"}`}>
-          <div className="bg-white border border-gray-200 rounded-lg p-6 sticky top-24">
-            <div className="flex items-center justify-between mb-6">
+          <div className="bg-white border border-gray-200 rounded-lg p-6 sticky top-24 max-h-[calc(100vh-7rem)] overflow-y-auto">
+            <div className="flex items-center justify-between">
               <h3 className="text-lg text-gray-900 font-aton uppercase">Filtros</h3>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={clearAllFilters}
                 className="text-brand-600 hover:text-brand-700"
+                disabled={isLoading}
               >
                 Limpiar
               </Button>
             </div>
 
-            {/* Bandas Filter */}
-            <div className="mb-6">
-              <h4 className="text-gray-900 mb-3 font-aton uppercase text-sm">Bandas</h4>
-              <div className="space-y-2 max-h-48 overflow-y-auto">
-                {bands.map((band) => (
-                  <div key={band} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={`band-${band}`}
-                      checked={selectedBands.includes(band)}
-                      onCheckedChange={(checked) => handleBandChange(band, checked as boolean)}
-                      className="data-[state=checked]:bg-brand-500 data-[state=checked]:border-brand-500"
-                    />
-                    <label htmlFor={`band-${band}`} className="text-sm text-gray-700 cursor-pointer font-roboto">
-                      {band}
-                    </label>
+            {/* Estado de carga para filtros */}
+            {isLoading && (
+              <div className="absolute inset-0 bg-white/80 flex items-center justify-center z-10">
+                <div className="flex flex-col items-center w-full px-6">
+                  <Loader2 className="h-8 w-8 animate-spin text-brand-500 mb-4" />
+                  <p className="text-gray-600 text-sm font-roboto mb-6">Actualizando filtros...</p>
+                  <div className="w-full space-y-4">
+                    <div className="h-3 bg-gray-200 rounded animate-pulse w-1/2"></div>
+                    <div className="h-3 bg-gray-200 rounded animate-pulse w-3/4"></div>
+                    <div className="h-3 bg-gray-200 rounded animate-pulse w-2/3"></div>
+                    <div className="h-3 bg-gray-200 rounded animate-pulse w-full"></div>
                   </div>
-                ))}
+                </div>
               </div>
-            </div>
+            )}
+
+            <hr className="border-gray-200 my-4" />
+
+            {/* Bandas Filter */}
+            {dynamicBands.length > 0 && (
+              <div className="mb-4">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-gray-900 mb-3 font-aton uppercase text-sm">Bandas</h4>
+                  {dynamicBands.length > INITIAL_FILTER_LIMIT && (
+                    <button 
+                      onClick={() => setExpandedBands(!expandedBands)} 
+                      className="text-xs text-gray-500 mb-3 hover:text-gray-700 focus:outline-none flex items-center justify-center w-6 h-6"
+                      disabled={isLoading}
+                      aria-label={expandedBands ? 'Mostrar menos bandas' : 'Mostrar más bandas'}
+                    >
+                      {expandedBands ? <span className="text-lg leading-none">−</span> : <span className="text-lg leading-none">+</span>}
+                    </button>
+                  )}
+                </div>
+                {/* Searchbar para Bandas */}
+                {expandedBands && (
+                  <input
+                    type="text"
+                    value={bandSearch}
+                    onChange={e => setBandSearch(e.target.value)}
+                    placeholder="Buscar banda..."
+                    className="mb-2 w-full px-2 py-1 text-xs border border-gray-200 rounded focus:outline-none focus:ring-1 focus:ring-brand-500"
+                    disabled={isLoading}
+                  />
+                )}
+                <div className="space-y-2 max-h-60 overflow-y-auto">
+                  {dynamicBands
+                    .filter(band => !expandedBands || band.value.toLowerCase().includes(bandSearch.toLowerCase()))
+                    .slice(0, expandedBands ? undefined : INITIAL_FILTER_LIMIT)
+                    .map((band) => (
+                    <div key={band.value} className="flex items-center justify-between space-x-2">
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          id={`band-${band.value}`}
+                          checked={selectedBands.includes(band.value)}
+                          onCheckedChange={(checked: boolean) => handleBandChange(band.value, checked)}
+                          className="data-[state=checked]:bg-brand-500 data-[state=checked]:border-brand-500"
+                          disabled={isLoading}
+                        />
+                        <label 
+                          htmlFor={`band-${band.value}`} 
+                          className={`text-sm cursor-pointer font-roboto ${isLoading ? 'text-gray-400' : 'text-gray-700'}`}
+                        >
+                          {band.value}
+                        </label>
+                      </div>
+                      <span className="text-xs text-gray-400 min-w-[2.5em] text-right">({band.count})</span>
+                    </div>
+                  ))}
+                </div>
+                {dynamicBands.length > INITIAL_FILTER_LIMIT && (
+                  <button
+                    onClick={() => setExpandedBands(!expandedBands)}
+                    className="w-full mt-2 text-center text-sm text-brand-600 font-medium flex items-center justify-center focus:outline-none"
+                    disabled={isLoading}
+                  >
+                    {expandedBands ? "− MENOS" : `+ MÁS (${dynamicBands.length - INITIAL_FILTER_LIMIT})`}
+                  </button>
+                )}
+              </div>
+            )}
+            
+            {/* Divisor entre filtros */}
+            {dynamicBands.length > 0 && dynamicTypes.length > 0 && (
+              <hr className="border-gray-200 my-4" />
+            )}
 
             {/* Tipo de Producto Filter */}
-            <div className="mb-6">
-              <h4 className="text-gray-900 mb-3 font-aton uppercase text-sm">Tipo de Producto</h4>
-              <div className="space-y-2">
-                {productTypes.map((type) => (
-                  <div key={type} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={`type-${type}`}
-                      checked={selectedTypes.includes(type)}
-                      onCheckedChange={(checked) => handleTypeChange(type, checked as boolean)}
-                      className="data-[state=checked]:bg-brand-500 data-[state=checked]:border-brand-500"
-                    />
-                    <label htmlFor={`type-${type}`} className="text-sm text-gray-700 cursor-pointer font-roboto">
-                      {type}
-                    </label>
-                  </div>
-                ))}
+            {dynamicTypes.length > 0 && (
+              <div className="mb-4">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-gray-900 mb-3 font-aton uppercase text-sm">Tipo de Producto</h4>
+                  {dynamicTypes.length > INITIAL_FILTER_LIMIT && (
+                    <button 
+                      onClick={() => setExpandedTypes(!expandedTypes)} 
+                      className="text-xs text-gray-500 mb-3 hover:text-gray-700 focus:outline-none flex items-center justify-center w-6 h-6"
+                      disabled={isLoading}
+                      aria-label={expandedTypes ? 'Mostrar menos tipos' : 'Mostrar más tipos'}
+                    >
+                      {expandedTypes ? <span className="text-lg leading-none">−</span> : <span className="text-lg leading-none">+</span>}
+                    </button>
+                  )}
+                </div>
+                {/* Searchbar para Tipo de Producto */}
+                {expandedTypes && (
+                  <input
+                    type="text"
+                    value={typeSearch}
+                    onChange={e => setTypeSearch(e.target.value)}
+                    placeholder="Buscar tipo..."
+                    className="mb-2 w-full px-2 py-1 text-xs border border-gray-200 rounded focus:outline-none focus:ring-1 focus:ring-brand-500"
+                    disabled={isLoading}
+                  />
+                )}
+                <div className={`space-y-2 ${expandedTypes ? 'max-h-60 overflow-y-auto' : ''}`}> 
+                  {dynamicTypes
+                    .filter(type => !expandedTypes || type.value.toLowerCase().includes(typeSearch.toLowerCase()))
+                    .slice(0, expandedTypes ? undefined : INITIAL_FILTER_LIMIT)
+                    .map((type) => (
+                    <div key={type.value} className="flex items-center justify-between space-x-2">
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          id={`type-${type.value}`}
+                          checked={selectedTypes.includes(type.value)}
+                          onCheckedChange={(checked: boolean) => handleTypeChange(type.value, checked)}
+                          className="data-[state=checked]:bg-brand-500 data-[state=checked]:border-brand-500"
+                          disabled={isLoading}
+                        />
+                        <label 
+                          htmlFor={`type-${type.value}`} 
+                          className={`text-sm cursor-pointer font-roboto ${isLoading ? 'text-gray-400' : 'text-gray-700'}`}
+                        >
+                          {type.value}
+                        </label>
+                      </div>
+                      <span className="text-xs text-gray-400 min-w-[2.5em] text-right">({type.count})</span>
+                    </div>
+                  ))}
+                </div>
+                {dynamicTypes.length > INITIAL_FILTER_LIMIT && (
+                  <button
+                    onClick={() => setExpandedTypes(!expandedTypes)}
+                    className="w-full mt-2 text-center text-sm text-brand-600 font-medium flex items-center justify-center focus:outline-none"
+                    disabled={isLoading}
+                  >
+                    {expandedTypes ? "− MENOS" : `+ MÁS (${dynamicTypes.length - INITIAL_FILTER_LIMIT})`}
+                  </button>
+                )}
               </div>
-            </div>
+            )}
+            
+            {/* Divisor entre filtros */}
+            {dynamicTypes.length > 0 && dynamicSizes.length > 0 && (
+              <hr className="border-gray-200 my-4" />
+            )}
 
             {/* Tamaño Filter */}
-            <div className="mb-6">
-              <h4 className="text-gray-900 mb-3 font-aton uppercase text-sm">Tamaño</h4>
-              <div className="grid grid-cols-3 gap-2">
-                {sizes.map((size) => (
-                  <div key={size} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={`size-${size}`}
-                      checked={selectedSizes.includes(size)}
-                      onCheckedChange={(checked) => handleSizeChange(size, checked as boolean)}
-                      className="data-[state=checked]:bg-brand-500 data-[state=checked]:border-brand-500"
-                    />
-                    <label htmlFor={`size-${size}`} className="text-sm text-gray-700 cursor-pointer font-roboto">
-                      {size}
-                    </label>
-                  </div>
-                ))}
+            {dynamicSizes.length > 0 && (
+              <div className="mb-4">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-gray-900 mb-3 font-aton uppercase text-sm">Tamaño</h4>
+                  {dynamicSizes.length > INITIAL_FILTER_LIMIT && (
+                    <button 
+                      onClick={() => setExpandedSizes(!expandedSizes)} 
+                      className="text-xs text-gray-500 mb-3 hover:text-gray-700 focus:outline-none flex items-center justify-center w-6 h-6"
+                      disabled={isLoading}
+                      aria-label={expandedSizes ? 'Mostrar menos tallas' : 'Mostrar más tallas'}
+                    >
+                      {expandedSizes ? <span className="text-lg leading-none">−</span> : <span className="text-lg leading-none">+</span>}
+                    </button>
+                  )}
+                </div>
+                {/* Searchbar para Tallas */}
+                {expandedSizes && (
+                  <input
+                    type="text"
+                    value={sizeSearch}
+                    onChange={e => setSizeSearch(e.target.value)}
+                    placeholder="Buscar talla..."
+                    className="mb-2 w-full px-2 py-1 text-xs border border-gray-200 rounded focus:outline-none focus:ring-1 focus:ring-brand-500"
+                    disabled={isLoading}
+                  />
+                )}
+                <div className={`space-y-2 ${expandedSizes ? 'max-h-60 overflow-y-auto' : ''}`}> 
+                  {dynamicSizes
+                    .filter(size => !expandedSizes || size.value.toLowerCase().includes(sizeSearch.toLowerCase()))
+                    .slice(0, expandedSizes ? undefined : INITIAL_FILTER_LIMIT)
+                    .map((size) => (
+                    <div key={size.value} className="flex items-center justify-between space-x-2">
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          id={`size-${size.value}`}
+                          checked={selectedSizes.includes(size.value)}
+                          onCheckedChange={(checked: boolean) => handleSizeChange(size.value, checked)}
+                          className="data-[state=checked]:bg-brand-500 data-[state=checked]:border-brand-500"
+                          disabled={isLoading}
+                        />
+                        <label 
+                          htmlFor={`size-${size.value}`}
+                          className={`text-sm cursor-pointer font-roboto ${isLoading ? 'text-gray-400' : 'text-gray-700'}`}
+                        >
+                          {size.value}
+                        </label>
+                      </div>
+                      <span className="text-xs text-gray-400 min-w-[2.5em] text-right">({size.count})</span>
+                    </div>
+                  ))}
+                </div>
+                {dynamicSizes.length > INITIAL_FILTER_LIMIT && (
+                  <button
+                    onClick={() => setExpandedSizes(!expandedSizes)}
+                    className="w-full mt-2 text-center text-sm text-brand-600 font-medium flex items-center justify-center focus:outline-none"
+                    disabled={isLoading}
+                  >
+                    {expandedSizes ? "− MENOS" : `+ MÁS (${dynamicSizes.length - INITIAL_FILTER_LIMIT})`}
+                  </button>
+                )}
               </div>
-            </div>
+            )}
+            
+            {/* Divisor entre filtros */}
+            {dynamicSizes.length > 0 && (
+              <hr className="border-gray-200 my-4" />
+            )}
 
             {/* Precio Filter */}
-            <div className="mb-6">
-              <h4 className="text-gray-900 mb-3 font-aton uppercase text-sm">Precio</h4>
+            <div className="mb-4">
+              <div className="flex items-center justify-between">
+                <h4 className="text-gray-900 mb-3 font-aton uppercase text-sm">Precio</h4>
+              </div>
               <div className="space-y-4">
                 <Slider
-                  value={priceRange}
-                  onValueChange={setPriceRange}
-                  max={100}
-                  min={0}
+                  value={tempPriceRange}
+                  onValueChange={debouncePriceChange}
+                  max={dynamicPrice[1]}
+                  min={dynamicPrice[0]}
                   step={5}
                   className="w-full"
+                  disabled={isLoading}
                 />
                 <div className="flex justify-between text-sm text-gray-600 font-roboto">
-                  <span>${priceRange[0]}</span>
-                  <span>${priceRange[1]}</span>
+                  <span>${tempPriceRange[0]}</span>
+                  <span>${tempPriceRange[1]}</span>
                 </div>
               </div>
             </div>
@@ -289,95 +699,233 @@ export default function ProductsGrid() {
           <div className="flex items-center justify-between mb-6">
             <div>
               <h2 className="text-2xl text-gray-900 font-aton uppercase">
-                Productos ({filteredProducts.length})
+                Productos
               </h2>
-              <p className="text-gray-600 font-roboto">Encuentra el merch perfecto para ti</p>
+              <p className="text-gray-600 font-roboto">
+                {isLoading ? "Cargando..." : 
+                  `Mostrando ${mappedProducts.length} de ${totalProducts} productos`}
+              </p>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredProducts.map((product) => (
-              <div
-                key={product.id}
-                className="group bg-white border border-gray-200 rounded-lg overflow-hidden hover:shadow-xl transition-all duration-300"
-              >
-                <div className="relative overflow-hidden">
-                  <Image
-                    src={product.image || "/placeholder.svg"}
-                    alt={product.name}
-                    width={300}
-                    height={300}
-                    className="w-full h-64 object-cover group-hover:scale-105 transition-transform duration-300"
-                  />
-                  {product.isOnSale && (
-                    <div className="absolute top-3 left-3 bg-brand-500 text-white px-2 py-1 rounded-full text-xs ">
-                      OFERTA
-                    </div>
-                  )}
-                  <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Button size="sm" className="bg-white text-gray-900 hover:bg-gray-100">
-                      <ShoppingCart className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-
-                <div className="p-4">
-                  <div className="mb-2">
-                    <p className="text-sm text-brand-600 font-medium font-roboto">{product.band}</p>
-                    <h3 className="text-lg text-gray-900 group-hover:text-brand-600 transition-colors font-roboto">
-                      {product.name}
-                    </h3>
-                  </div>
-
-                  <div className="flex items-center mb-3">
-                    <div className="flex items-center">
-                      {[...Array(5)].map((_, i) => (
-                        <Star
-                          key={i}
-                          className={`h-4 w-4 ${
-                            i < Math.floor(product.rating) ? "text-yellow-400 fill-current" : "text-gray-300"
-                          }`}
-                        />
-                      ))}
-                    </div>
-                    <span className="text-sm text-gray-600 ml-2 font-roboto">({product.reviews})</span>
-                  </div>
-
-                  {product.sizes.length > 0 && (
-                    <div className="mb-3">
-                      <p className="text-xs text-gray-500 mb-1 font-roboto">Tallas disponibles:</p>
-                      <div className="flex flex-wrap gap-1">
-                        {product.sizes.map((size) => (
-                          <span key={size} className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded font-roboto">
-                            {size}
-                          </span>
+          {/* Estado de carga para productos */}
+          {isLoading ? (
+            <>
+              <div className="flex flex-col items-center justify-center py-8">
+                <Loader2 className="h-12 w-12 animate-spin text-brand-500 mb-4" />
+                <p className="text-gray-600 text-lg font-roboto">Cargando productos...</p>
+                <p className="text-gray-500 text-sm mt-2 font-roboto">
+                  {selectedBands.length > 0 && `Filtrando por ${selectedBands.join(', ')}`}
+                  {selectedTypes.length > 0 && `${selectedBands.length ? ' y ' : 'Filtrando por '}${selectedTypes.join(', ')}`}
+                  {selectedSizes.length > 0 && `${(selectedBands.length || selectedTypes.length) ? ' y ' : 'Filtrando por '}talla ${selectedSizes.join(', ')}`}
+                  {(priceRange[0] > dynamicPrice[0] || priceRange[1] < dynamicPrice[1]) && 
+                   `${(selectedBands.length || selectedTypes.length || selectedSizes.length) ? ' y ' : 'Filtrando por '}precio $${priceRange[0]} - $${priceRange[1]}`}
+                </p>
+              </div>
+              
+              {/* Grid de esqueletos de productos */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-4">
+                {Array.from({ length: 6 }).map((_, index) => (
+                  <div 
+                    key={`skeleton-${index}`} 
+                    className="bg-white border border-gray-200 rounded-lg overflow-hidden p-4"
+                  >
+                    <div className="w-full h-48 bg-gray-200 rounded animate-pulse mb-4"></div>
+                    <div className="space-y-3">
+                      <div className="h-3 bg-gray-200 rounded animate-pulse w-1/4"></div>
+                      <div className="h-5 bg-gray-200 rounded animate-pulse w-3/4"></div>
+                      <div className="flex gap-1">
+                        {Array.from({ length: 5 }).map((_, i) => (
+                          <div key={`star-${i}`} className="h-4 w-4 bg-gray-200 rounded animate-pulse"></div>
                         ))}
                       </div>
-                    </div>
-                  )}
-
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <span className="text-xl text-gray-900 font-roboto">${product.price}</span>
-                      {product.originalPrice && (
-                        <span className="text-sm text-gray-500 line-through font-roboto">${product.originalPrice}</span>
-                      )}
+                      <div className="h-4 bg-gray-200 rounded animate-pulse w-1/2"></div>
                     </div>
                   </div>
-                </div>
+                ))}
               </div>
-            ))}
-          </div>
+            </>
+          ) : (
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {mappedProducts.map((product: any) => (
+                  <div
+                    key={product.id}
+                    className="group bg-white border border-gray-200 rounded-lg overflow-hidden hover:shadow-xl transition-all duration-300"
+                  >
+                    <div className="relative overflow-hidden p-4 flex items-center justify-center">
+                      <Image
+                      src={product.image || "/placeholder.svg"}
+                      alt={product.name}
+                      width={240}
+                      height={240}
+                      className="max-w-full max-h-56 object-contain transition-transform duration-300 group-hover:scale-105"
+                      />
+                      {product.isOnSale && (
+                        <div className="absolute top-3 left-3 bg-brand-500 text-white px-2 py-1 rounded-full text-xs ">
+                          OFERTA
+                        </div>
+                      )}
+                      <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Button size="sm" className="bg-white text-gray-900 hover:bg-gray-100" asChild>
+                          <a href={product.url} target="_blank" rel="noopener noreferrer">
+                            <ShoppingCart className="h-4 w-4" />
+                          </a>
+                        </Button>
+                      </div>
+                    </div>
 
-          {filteredProducts.length === 0 && (
-            <div className="text-center py-12">
-              <p className="text-gray-500 text-lg font-roboto">
-                No se encontraron productos con los filtros seleccionados.
-              </p>
-              <Button onClick={clearAllFilters} className="mt-4 bg-brand-500 hover:bg-brand-600 text-white">
-                Limpiar Filtros
-              </Button>
-            </div>
+                    <div className="p-4">
+                      <div className="mb-2">
+                        <p className="text-sm text-brand-600 font-medium font-roboto">{product.band}</p>
+                        <h3 className="text-lg text-gray-900 group-hover:text-brand-600 transition-colors font-roboto">
+                          {product.name}
+                        </h3>
+                      </div>
+
+                      <div className="flex items-center mb-3">
+                        <div className="flex items-center">
+                          {[...Array(5)].map((_, i) => (
+                            <Star
+                              key={i}
+                              className={`h-4 w-4 ${i < Math.floor(product.rating) ? "text-yellow-400 fill-current" : "text-gray-300"}`}
+                            />
+                          ))}
+                        </div>
+                        <span className="text-sm text-gray-600 ml-2 font-roboto">({product.reviews})</span>
+                      </div>
+
+                      {Array.isArray(product.sizes) && product.sizes.length > 0 && (
+                        <div className="mb-3">
+                          <p className="text-xs text-gray-500 mb-1 font-roboto">Tallas disponibles:</p>
+                          <div className="flex flex-wrap gap-1">
+                            {product.sizes.filter((size: any) => typeof size === "string").map((size: string) => (
+                              <span key={size} className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded font-roboto">
+                                {size}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-2">
+                          <span className="text-xl text-gray-900 font-roboto">${product.price}</span>
+                          {product.originalPrice && (
+                            <span className="text-sm text-gray-500 line-through font-roboto">${product.originalPrice}</span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Paginación */}
+              {totalPages > 1 && (
+                <div className="flex justify-center items-center gap-2 mt-8 flex-wrap">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    disabled={currentPage === 1 || isLoading}
+                  >
+                    Anterior
+                  </Button>
+                  {/* Paginación compacta */}
+                  {(function() {
+                    const pageButtons = []
+                    const maxVisible = 7 // máximo de botones visibles
+                    
+                    // Siempre mostrar la página 1 primero
+                    pageButtons.push(
+                      <Button 
+                        key={1} 
+                        size="sm" 
+                        variant={currentPage === 1 ? "default" : "outline"} 
+                        onClick={() => handlePageChange(1)} 
+                        className={currentPage === 1 ? "bg-brand-500 text-white" : ""}
+                        disabled={isLoading}
+                      >1</Button>
+                    )
+                    
+                    // Calcular rango de páginas a mostrar (sin incluir 1 y última página)
+                    let start = Math.max(2, currentPage - 1)
+                    let end = Math.min(totalPages - 1, currentPage + 1)
+                    
+                    // Ajustar si estamos cerca del inicio o final
+                    if (currentPage <= 3) {
+                      end = Math.min(totalPages - 1, 4)
+                    }
+                    if (currentPage >= totalPages - 2) {
+                      start = Math.max(2, totalPages - 4)
+                    }
+                    
+                    // Mostrar elipsis después del 1 si hay espacio
+                    if (start > 2) {
+                      pageButtons.push(<span key="start-ellipsis">...</span>)
+                    }
+                    
+                    // Páginas intermedias
+                    for (let i = start; i <= end; i++) {
+                      pageButtons.push(
+                        <Button 
+                          key={i} 
+                          size="sm" 
+                          variant={i === currentPage ? "default" : "outline"} 
+                          onClick={() => handlePageChange(i)} 
+                          className={i === currentPage ? "bg-brand-500 text-white" : ""}
+                          disabled={isLoading}
+                        >{i}</Button>
+                      )
+                    }
+                    
+                    // Mostrar elipsis antes de la última página si hay espacio
+                    if (end < totalPages - 1) {
+                      pageButtons.push(<span key="end-ellipsis">...</span>)
+                    }
+                    
+                    // Última página (solo si hay más de una página)
+                    if (totalPages > 1) {
+                      pageButtons.push(
+                        <Button 
+                          key={totalPages} 
+                          size="sm" 
+                          variant={currentPage === totalPages ? "default" : "outline"} 
+                          onClick={() => handlePageChange(totalPages)} 
+                          className={currentPage === totalPages ? "bg-brand-500 text-white" : ""}
+                          disabled={isLoading}
+                        >{totalPages}</Button>
+                      )
+                    }
+                    return pageButtons
+                  })()}
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    disabled={currentPage === totalPages || isLoading}
+                  >
+                    Siguiente
+                  </Button>
+                </div>
+              )}
+
+              {mappedProducts.length === 0 && !isLoading && (
+                <div className="text-center py-12">
+                  <p className="text-gray-500 text-lg font-roboto">
+                    No se encontraron productos con los filtros seleccionados.
+                  </p>
+                  <Button 
+                    onClick={clearAllFilters} 
+                    className="mt-4 bg-brand-500 hover:bg-brand-600 text-white"
+                    disabled={isLoading}
+                  >
+                    Limpiar Filtros
+                  </Button>
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>

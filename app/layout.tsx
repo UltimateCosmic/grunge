@@ -14,9 +14,11 @@ const robotoFlex = Roboto_Flex({
 })
 
 export const metadata: Metadata = {
-  title: "RockMerch - Tienda Oficial de Merch",
+  title: "Grunge - Tienda Oficial de Merch",
   description: "Tu tienda oficial de merch de las mejores bandas de rock e indie",
-    generator: 'v0.dev'
+  icons: {
+    icon: "/grunge-icon.png",
+  },
 }
 
 export default function RootLayout({
