@@ -7,6 +7,10 @@ import { Star, ShoppingCart, Filter, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Slider } from "@/components/ui/slider"
+import qs from "qs"
+
+// Solución temporal para el error de tipos de 'qs'
+declare module 'qs';
 
 // Endpoint global de búsqueda Findify (devuelve productos y facets globales)
 const API_SEARCH = "https://api-v3.findify.io/v3/search/" +
@@ -16,8 +20,49 @@ const API_SEARCH = "https://api-v3.findify.io/v3/search/" +
   "&user%5Bexist%5D=true" +
   "&t_client=1751442362499" +
   "&key=5e2c787d-30dd-43c6-9eed-9db5a4998c6f" +
-  "&slot=findify-search" + // Agregamos slot para mejorar caching
-  "&max_count=10000" // Limitamos el total de productos a 10,000
+  "&slot=findify-search" +
+  "&max_count=10000"
+
+// Utilidad para construir el query string de filtros Findify
+function buildFindifyFiltersQS({ bands, types, sizes, priceRange, dynamicPrice }: {
+  bands: string[];
+  types: string[];
+  sizes: string[];
+  priceRange: [number, number];
+  dynamicPrice: [number, number];
+}) {
+  const filters: any[] = [];
+  if (bands.length > 0) {
+    filters.push({
+      name: "brand",
+      type: "text",
+      values: bands.map((b: string) => ({ value: b })),
+    });
+  }
+  if (types.length > 0) {
+    filters.push({
+      name: "custom_fields.apparel",
+      type: "text",
+      values: types.map((t: string) => ({ value: t })),
+    });
+  }
+  if (sizes.length > 0) {
+    filters.push({
+      name: "size",
+      type: "text",
+      values: sizes.map((s: string) => ({ value: s })),
+    });
+  }
+  if (priceRange[0] > dynamicPrice[0] || priceRange[1] < dynamicPrice[1]) {
+    filters.push({
+      name: "price",
+      type: "range",
+      values: [{ from: priceRange[0], to: priceRange[1] }],
+    });
+  }
+  // Usar qs para serializar el array de filtros en formato anidado
+  return qs.stringify({ filters }, { encodeValuesOnly: true, arrayFormat: "indices" });
+}
 
 export default function ProductsGrid() {
   const searchParams = useSearchParams()
@@ -55,6 +100,20 @@ export default function ProductsGrid() {
   const [sizeSearch, setSizeSearch] = useState("");
   // Límite inicial de elementos a mostrar por filtro
   const INITIAL_FILTER_LIMIT = 6
+
+  // Estado y lógica para el ordenamiento
+  const [sortOrder, setSortOrder] = useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search)
+      return params.get('sort') || 'popularity'
+    }
+    return 'popularity'
+  })
+
+  const handleSortChange = (value: string) => {
+    setSortOrder(value)
+    setCurrentPage(1) // Reiniciar a la primera página al cambiar orden
+  }
 
   // Fetch con filtros y paginación
   // Función para actualizar filtros dinámicos y limpiar los que ya no están disponibles
@@ -164,71 +223,31 @@ export default function ProductsGrid() {
         }
         controller = new AbortController();
         const signal = controller.signal;
-        
         setIsLoading(true) // Mostrar indicador de carga
-        
         const offset = (currentPage - 1) * PRODUCTS_PER_PAGE
-        // Construir filtros para la API
-        const filters: any = []
-        if (selectedBands.length > 0) {
-          filters.push({ name: "brand", values: selectedBands })
+        // Construir query string de filtros Findify
+        const filtersQS = buildFindifyFiltersQS({
+          bands: selectedBands,
+          types: selectedTypes,
+          sizes: selectedSizes,
+          priceRange: priceRange as [number, number],
+          dynamicPrice: dynamicPrice as [number, number],
+        });
+        // --- Construir sort QS ---
+        let sortQS = '';
+        if (sortOrder === 'price_desc') {
+          sortQS = qs.stringify({ sort: [{ field: 'price', order: 'desc' }] }, { encodeValuesOnly: true });
+        } else if (sortOrder === 'price_asc') {
+          sortQS = qs.stringify({ sort: [{ field: 'price', order: 'asc' }] }, { encodeValuesOnly: true });
+        } else if (sortOrder === 'popularity') {
+          sortQS = qs.stringify({ sort: [{ field: 'default', order: '' }] }, { encodeValuesOnly: true });
+        } else if (sortOrder === 'newest') {
+          sortQS = qs.stringify({ sort: [{ field: 'created_at', order: 'desc' }] }, { encodeValuesOnly: true });
         }
-        if (selectedTypes.length > 0) {
-          filters.push({ name: "custom_fields.apparel", values: selectedTypes })
-        }
-        if (selectedSizes.length > 0) {
-          filters.push({ name: "size", values: selectedSizes })
-        }
-        // Añadir filtro de precio
-        if (priceRange[0] > dynamicPrice[0] || priceRange[1] < dynamicPrice[1]) {
-          filters.push({ name: "price", from: priceRange[0], to: priceRange[1] })
-        }
-        // Construir query string de filtros
-        let filterQuery = ""
-        if (filters.length > 0) {
-          filterQuery = "&filters=" + encodeURIComponent(JSON.stringify(filters))
-        }
-        
         // Construir clave única para esta combinación de filtros y página
-        const cacheKey = `p${offset}_f${JSON.stringify(filters)}`
-        
-        // Verificar si tenemos esta respuesta en caché
-        if (requestCache[cacheKey]) {
-          console.log("Usando respuesta en caché para:", cacheKey);
-          const cachedData = requestCache[cacheKey];
-          
-          if (isMounted) {
-            setProducts(cachedData.items || []);
-            setTotalProducts(cachedData.meta?.total || 0);
-            setFacets(cachedData.facets || []);
-            
-            // Siempre actualizar filtros dinámicos con la respuesta más reciente
-            updateDynamicFilters(cachedData);
-            
-            // Actualizar rango de precio solo en carga inicial sin filtros
-            if (isInitialLoad && 
-                selectedBands.length === 0 && 
-                selectedTypes.length === 0 && 
-                selectedSizes.length === 0) {
-              const priceFacet = cachedData.facets?.find((f: any) => f.name === "price")
-              if (priceFacet?.min != null && priceFacet?.max != null) {
-                const min = Math.floor(priceFacet.min);
-                const max = Math.ceil(priceFacet.max);
-                setPriceRange([min, max]);
-                setTempPriceRange([min, max]);
-              }
-            }
-            
-            if (isInitialLoad) {
-              setIsInitialLoad(false);
-            }
-            
-            setIsLoading(false);
-          }
-          return;
-        }
-        
-        const url = `${API_SEARCH}&limit=${PRODUCTS_PER_PAGE}&offset=${offset}${filterQuery}`
+        const cacheKey = `p${offset}_f${filtersQS}_s${sortQS}`;
+        // Construir URL final
+        const url = `${API_SEARCH}&limit=${PRODUCTS_PER_PAGE}&offset=${offset}${filtersQS && filtersQS.length > 0 ? `&${filtersQS}` : ""}${sortQS && sortQS.length > 0 ? `&${sortQS}` : ""}`;
         console.log("Fetching:", url);
         
         try {
@@ -297,7 +316,7 @@ export default function ProductsGrid() {
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentPage, selectedBands, selectedTypes, selectedSizes, priceRange])
+  }, [currentPage, selectedBands, selectedTypes, selectedSizes, priceRange, sortOrder])
 
   // Esta función ahora se maneja directamente en updateDynamicFilters
   // para evitar múltiples actualizaciones y reducir las dependencias
@@ -395,17 +414,47 @@ export default function ProductsGrid() {
     }, 500); // Esperar 500ms antes de aplicar el filtro
   }, [])
 
-  // Títulos dinámicos para metadata (con deps mínimas)
-  const pageTitle = useMemo(() => {
-    if (selectedBands.length > 0) {
-      return `Productos de ${selectedBands.join(', ')}`;
-    } else if (selectedTypes.length > 0) {
-      return `${selectedTypes.join(', ')}`;
-    } else {
-      return "Todos los productos";
+  // Sincronizar filtros con la URL y leerlos al cargar
+  useEffect(() => {
+    // Leer filtros desde la URL al cargar
+    const params = new URLSearchParams(window.location.search);
+    const bands = params.getAll("band");
+    const types = params.getAll("type");
+    const sizes = params.getAll("size");
+    const priceFrom = params.get("priceFrom");
+    const priceTo = params.get("priceTo");
+    const page = params.get("page");
+    if (bands.length > 0) setSelectedBands(bands);
+    if (types.length > 0) setSelectedTypes(types);
+    if (sizes.length > 0) setSelectedSizes(sizes);
+    if (priceFrom && priceTo) {
+      setPriceRange([parseFloat(priceFrom), parseFloat(priceTo)]);
+      setTempPriceRange([parseFloat(priceFrom), parseFloat(priceTo)]);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [JSON.stringify(selectedBands), JSON.stringify(selectedTypes)]);
+    if (page) setCurrentPage(Number(page));
+    // eslint-disable-next-line
+  }, []);
+
+  // Actualizar la URL del navegador cuando cambian los filtros
+  useEffect(() => {
+    const params = new URLSearchParams();
+    selectedBands.forEach((b) => params.append("band", b));
+    selectedTypes.forEach((t) => params.append("type", t));
+    selectedSizes.forEach((s) => params.append("size", s));
+    if (priceRange[0] > dynamicPrice[0] || priceRange[1] < dynamicPrice[1]) {
+      params.set("priceFrom", priceRange[0].toString());
+      params.set("priceTo", priceRange[1].toString());
+    }
+    if (currentPage > 1) params.set("page", currentPage.toString());
+    if (sortOrder && sortOrder !== 'popularity') {
+      params.set('sort', sortOrder);
+    } else {
+      params.delete('sort');
+    }
+    const url = window.location.pathname + (params.toString() ? `?${params.toString()}` : "");
+    window.history.replaceState({}, "", url);
+    // eslint-disable-next-line
+  }, [selectedBands, selectedTypes, selectedSizes, priceRange, currentPage, sortOrder]);
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -696,7 +745,7 @@ export default function ProductsGrid() {
 
         {/* Products Grid */}
         <div className="lg:w-3/4">
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
             <div>
               <h2 className="text-2xl text-gray-900 font-aton uppercase">
                 Productos
@@ -705,6 +754,22 @@ export default function ProductsGrid() {
                 {isLoading ? "Cargando..." : 
                   `Mostrando ${mappedProducts.length} de ${totalProducts} productos`}
               </p>
+            </div>
+            {/* Ordenar por */}
+            <div className="ml-auto min-w-[220px]">
+              <label htmlFor="sort-select" className="block text-xs text-gray-500 font-roboto mb-1 text-right">Ordenar por</label>
+              <select
+                id="sort-select"
+                className="w-full border border-gray-300 rounded px-3 py-2 text-sm font-roboto focus:outline-none focus:ring-1 focus:ring-brand-500 bg-white"
+                value={sortOrder}
+                onChange={e => handleSortChange(e.target.value)}
+                disabled={isLoading}
+              >
+                <option value="popularity">Popularidad</option>
+                <option value="price_desc">Precio: mayor a menor</option>
+                <option value="price_asc">Precio: menor a mayor</option>
+                <option value="newest">Más recientes</option>
+              </select>
             </div>
           </div>
 
@@ -778,39 +843,28 @@ export default function ProductsGrid() {
                     <div className="p-4">
                       <div className="mb-2">
                         <p className="text-sm text-brand-600 font-medium font-roboto">{product.band}</p>
-                        <h3 className="text-lg text-gray-900 group-hover:text-brand-600 transition-colors font-roboto">
+                        <h3 className="text-lg text-gray-900 transition-colors font-roboto">
                           {product.name}
                         </h3>
                       </div>
 
-                      <div className="flex items-center mb-3">
-                        <div className="flex items-center">
-                          {[...Array(5)].map((_, i) => (
-                            <Star
-                              key={i}
-                              className={`h-4 w-4 ${i < Math.floor(product.rating) ? "text-yellow-400 fill-current" : "text-gray-300"}`}
-                            />
-                          ))}
-                        </div>
-                        <span className="text-sm text-gray-600 ml-2 font-roboto">({product.reviews})</span>
-                      </div>
-
-                      {Array.isArray(product.sizes) && product.sizes.length > 0 && (
-                        <div className="mb-3">
-                          <p className="text-xs text-gray-500 mb-1 font-roboto">Tallas disponibles:</p>
-                          <div className="flex flex-wrap gap-1">
-                            {product.sizes.filter((size: any) => typeof size === "string").map((size: string) => (
-                              <span key={size} className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded font-roboto">
-                                {size}
-                              </span>
-                            ))}
+                      {Array.isArray(product.sizes) && product.sizes.length > 0 &&
+                        !(product.sizes.length === 1 && product.sizes[0] === "Default Title") && (
+                          <div className="mb-3">
+                            <p className="text-xs text-gray-500 mb-1 font-roboto">Tallas disponibles:</p>
+                            <div className="flex flex-wrap gap-1">
+                              {product.sizes.filter((size: any) => typeof size === "string").map((size: string) => (
+                                <span key={size} className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded font-roboto">
+                                  {size}
+                                </span>
+                              ))}
+                            </div>
                           </div>
-                        </div>
                       )}
 
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-2">
-                          <span className="text-xl text-gray-900 font-roboto">${product.price}</span>
+                          <span className={`text-xl font-semibold font-roboto ${product.isOnSale ? "text-primary" : "text-gray-900"}`}>${product.price}</span>
                           {product.originalPrice && (
                             <span className="text-sm text-gray-500 line-through font-roboto">${product.originalPrice}</span>
                           )}

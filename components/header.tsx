@@ -38,10 +38,10 @@ export default function Header() {
 
           {/* Right side a la derecha, mismo ancho que logo */}
           <div className="flex items-center space-x-4 justify-end flex-shrink-0 w-40">
-            <Button variant="ghost" size="icon" className="text-gray-300 hover:text-white">
+            <Button variant="ghost" size="icon" className="text-gray-300 hover:text-black">
               <Search className="h-5 w-5" />
             </Button>
-            <Button variant="ghost" size="icon" className="text-gray-300 hover:text-white relative">
+            <Button variant="ghost" size="icon" className="text-gray-300 hover:text-black relative">
               <ShoppingCart className="h-5 w-5" />
               <span className="absolute -top-1 -right-1 bg-brand-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
                 3

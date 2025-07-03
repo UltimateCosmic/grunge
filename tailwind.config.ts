@@ -54,6 +54,18 @@ const config: Config = {
           foreground: "hsl(var(--card-foreground))",
         },
         brand: {
+          50: "#ffe6ee",
+          100: "#ffb3cc",
+          200: "#ff80aa",
+          300: "#ff4d88",
+          400: "#ff1a66",
+          500: "#DC143C",
+          600: "#b01032",
+          700: "#850c26",
+          800: "#59081a",
+          900: "#2e040d",
+        },
+        /*brand: {
           50: "#e6fff2",
           100: "#b3ffcc",
           200: "#80ffa6",
@@ -64,7 +76,7 @@ const config: Config = {
           700: "#009933",
           800: "#006625",
           900: "#003317",
-        },
+        },*/
       },
       borderRadius: {
         lg: "var(--radius)",

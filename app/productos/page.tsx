@@ -7,9 +7,20 @@ export default function ProductsPage() {
     <div className="min-h-screen bg-white">
       <Header />
       <main>
-        {/* Page Header */}
-        <section className="bg-gradient-to-r from-brand-500 to-brand-600 text-white py-16">
-          <div className="container mx-auto px-4 text-center">
+        {/* Page Header con patrón grunge repetido */}
+        <section className="relative bg-gradient-to-r from-brand-500 to-brand-600 text-white py-16 overflow-hidden">
+          {/* Patrón SVG repetido con opacidad */}
+            <div
+            aria-hidden="true"
+            className="absolute inset-0 w-full h-full opacity-30 pointer-events-none select-none"
+            style={{
+              backgroundImage: 'url("/rock-pattern.png")',
+              backgroundRepeat: 'repeat',
+              backgroundSize: '360px 360px',
+              zIndex: 1,
+            }}
+            />
+          <div className="relative z-10 container mx-auto px-4 text-center">
             <h1 className="text-4xl md:text-5xl mb-4 font-aton uppercase">Nuestros Productos</h1>
             <p className="text-xl text-brand-100 max-w-2xl mx-auto font-roboto">
               Descubre el merch oficial de las mejores bandas de rock e indie
