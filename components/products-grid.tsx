@@ -12,6 +12,19 @@ import qs from "qs"
 // Solución temporal para el error de tipos de 'qs'
 declare module 'qs';
 
+// Tasa de cambio: 1 USD = 3.55 PEN
+const USD_TO_PEN_RATE = 3.55;
+
+// Función para convertir dólares a soles
+const convertToPEN = (usdPrice: number): number => {
+  return Math.round(usdPrice * USD_TO_PEN_RATE);
+};
+
+// Función para formatear precio en soles
+const formatPriceInPEN = (price: number): string => {
+  return `S/ ${price.toLocaleString('es-PE')}`;
+};
+
 // Endpoint global de búsqueda Findify (devuelve productos y facets globales)
 const API_SEARCH = "https://api-v3.findify.io/v3/search/" +
   "?user%5Buid%5D=2BFa9WflrlWkujYL" +
@@ -54,10 +67,13 @@ function buildFindifyFiltersQS({ bands, types, sizes, priceRange, dynamicPrice }
     });
   }
   if (priceRange[0] > dynamicPrice[0] || priceRange[1] < dynamicPrice[1]) {
+    // Convertir los precios de PEN a USD para la API
+    const fromUSD = Math.floor(priceRange[0] / USD_TO_PEN_RATE);
+    const toUSD = Math.ceil(priceRange[1] / USD_TO_PEN_RATE);
     filters.push({
       name: "price",
       type: "range",
-      values: [{ from: priceRange[0], to: priceRange[1] }],
+      values: [{ from: fromUSD, to: toUSD }],
     });
   }
   // Usar qs para serializar el array de filtros en formato anidado
@@ -74,7 +90,7 @@ export default function ProductsGrid() {
   const [selectedBands, setSelectedBands] = useState<string[]>(bandaSlug ? [bandaSlug] : [])
   const [selectedTypes, setSelectedTypes] = useState<string[]>([])
   const [selectedSizes, setSelectedSizes] = useState<string[]>([])
-  const [priceRange, setPriceRange] = useState([0, 100])
+  const [priceRange, setPriceRange] = useState([0, 355]) // Valor inicial en soles (100 USD = 355 PEN)
   const [showFilters, setShowFilters] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
   const [totalProducts, setTotalProducts] = useState(0)
@@ -87,8 +103,8 @@ export default function ProductsGrid() {
   const [dynamicBands, setDynamicBands] = useState<{ value: string, count: number }[]>([])
   const [dynamicTypes, setDynamicTypes] = useState<{ value: string, count: number }[]>([])
   const [dynamicSizes, setDynamicSizes] = useState<{ value: string, count: number }[]>([])
-  const [dynamicPrice, setDynamicPrice] = useState<[number, number]>([0, 100])
-  const [tempPriceRange, setTempPriceRange] = useState<[number, number]>([0, 100]) // Valor temporal para debounce
+  const [dynamicPrice, setDynamicPrice] = useState<[number, number]>([0, 355]) // Valor inicial en soles
+  const [tempPriceRange, setTempPriceRange] = useState<[number, number]>([0, 355]) // Valor temporal para debounce en soles
 
   // Estados para controlar cuántos elementos mostrar en cada filtro
   const [expandedBands, setExpandedBands] = useState(false)
@@ -136,9 +152,12 @@ export default function ProductsGrid() {
     // Rango de precio dinámico
     const priceFacet = json.facets?.find((f: any) => f.name === "price");
     if (priceFacet && priceFacet.min != null && priceFacet.max != null) {
-      const min = Math.floor(priceFacet.min);
-      const max = Math.ceil(priceFacet.max);
-      setDynamicPrice([min, max]);
+      const minUSD = Math.floor(priceFacet.min);
+      const maxUSD = Math.ceil(priceFacet.max);
+      // Convertir los precios USD a PEN
+      const minPEN = convertToPEN(minUSD);
+      const maxPEN = convertToPEN(maxUSD);
+      setDynamicPrice([minPEN, maxPEN]);
     }
 
     // Limpiar filtros seleccionados que ya no existen en los resultados actuales
@@ -181,15 +200,18 @@ export default function ProductsGrid() {
       
       // Ajustar rango de precio si es necesario
       if (priceFacet && priceFacet.min != null && priceFacet.max != null) {
-        const min = Math.floor(priceFacet.min);
-        const max = Math.ceil(priceFacet.max);
+        const minUSD = Math.floor(priceFacet.min);
+        const maxUSD = Math.ceil(priceFacet.max);
+        // Convertir los precios USD a PEN
+        const minPEN = convertToPEN(minUSD);
+        const maxPEN = convertToPEN(maxUSD);
         
         setPriceRange(prev => {
           // Si el rango actual está fuera del nuevo rango disponible, ajustarlo
-          if (prev[0] < min || prev[1] > max) {
+          if (prev[0] < minPEN || prev[1] > maxPEN) {
             const newRange = [
-              Math.max(prev[0], min),
-              Math.min(prev[1], max)
+              Math.max(prev[0], minPEN),
+              Math.min(prev[1], maxPEN)
             ];
             console.log("Ajustando rango de precio:", prev, "->", newRange);
             return newRange;
@@ -198,10 +220,10 @@ export default function ProductsGrid() {
         });
         
         setTempPriceRange(prev => {
-          if (prev[0] < min || prev[1] > max) {
+          if (prev[0] < minPEN || prev[1] > maxPEN) {
             return [
-              Math.max(prev[0], min),
-              Math.min(prev[1], max)
+              Math.max(prev[0], minPEN),
+              Math.min(prev[1], maxPEN)
             ];
           }
           return prev;
@@ -276,10 +298,13 @@ export default function ProductsGrid() {
                 selectedSizes.length === 0) {
               const priceFacet = json.facets?.find((f: any) => f.name === "price")
               if (priceFacet?.min != null && priceFacet?.max != null) {
-                const min = Math.floor(priceFacet.min);
-                const max = Math.ceil(priceFacet.max);
-                setPriceRange([min, max]);
-                setTempPriceRange([min, max]);
+                const minUSD = Math.floor(priceFacet.min);
+                const maxUSD = Math.ceil(priceFacet.max);
+                // Convertir los precios USD a PEN
+                const minPEN = convertToPEN(minUSD);
+                const maxPEN = convertToPEN(maxUSD);
+                setPriceRange([minPEN, maxPEN]);
+                setTempPriceRange([minPEN, maxPEN]);
               }
             }
             
@@ -322,20 +347,25 @@ export default function ProductsGrid() {
   // para evitar múltiples actualizaciones y reducir las dependencias
 
   // Función pura para mapear productos (fuera del useMemo)
-  const mapProduct = (item: any) => ({
-    id: item.id,
-    name: item.title,
-    band: item.brand, // Usar el valor tal cual viene de la API
-    type: typeof item.custom_fields?.apparel === "string" ? item.custom_fields.apparel : Array.isArray(item.custom_fields?.apparel) ? item.custom_fields.apparel[0] : "",
-    price: Array.isArray(item.price) ? item.price[0] : (typeof item.price === "number" ? item.price : 0),
-    originalPrice: item.compare_at || null,
-    image: item.image_url || "/placeholder.svg?height=300&width=300",
-    rating: typeof item.rating === "number" ? item.rating : 0,
-    reviews: typeof item.reviews === "number" ? item.reviews : 0,
-    isOnSale: Array.isArray(item.discount) && item.discount.length > 0,
-    sizes: Array.isArray(item.size) ? item.size : typeof item.size === "string" ? [item.size] : Array.isArray(item.custom_fields?.variant_title) ? item.custom_fields.variant_title : typeof item.custom_fields?.variant_title === "string" ? [item.custom_fields.variant_title] : [],
-    url: item.product_url ? `https://www.bandmerch.com${item.product_url}` : undefined,
-  });
+  const mapProduct = (item: any) => {
+    const usdPrice = Array.isArray(item.price) ? item.price[0] : (typeof item.price === "number" ? item.price : 0);
+    const usdOriginalPrice = item.compare_at || null;
+    
+    return {
+      id: item.id,
+      name: item.title,
+      band: item.brand, // Usar el valor tal cual viene de la API
+      type: typeof item.custom_fields?.apparel === "string" ? item.custom_fields.apparel : Array.isArray(item.custom_fields?.apparel) ? item.custom_fields.apparel[0] : "",
+      price: convertToPEN(usdPrice), // Convertir a soles
+      originalPrice: usdOriginalPrice ? convertToPEN(usdOriginalPrice) : null, // Convertir a soles
+      image: item.image_url || "/placeholder.svg?height=300&width=300",
+      rating: typeof item.rating === "number" ? item.rating : 0,
+      reviews: typeof item.reviews === "number" ? item.reviews : 0,
+      isOnSale: Array.isArray(item.discount) && item.discount.length > 0,
+      sizes: Array.isArray(item.size) ? item.size : typeof item.size === "string" ? [item.size] : Array.isArray(item.custom_fields?.variant_title) ? item.custom_fields.variant_title : typeof item.custom_fields?.variant_title === "string" ? [item.custom_fields.variant_title] : [],
+      url: item.product_url ? `https://www.bandmerch.com${item.product_url}` : undefined,
+    };
+  };
 
   // Mapeo de productos de la API (optimizado con useMemo)
   const mappedProducts = useMemo(() => {
@@ -730,13 +760,13 @@ export default function ProductsGrid() {
                   onValueChange={debouncePriceChange}
                   max={dynamicPrice[1]}
                   min={dynamicPrice[0]}
-                  step={5}
+                  step={10}
                   className="w-full"
                   disabled={isLoading}
                 />
                 <div className="flex justify-between text-sm text-gray-600 font-roboto">
-                  <span>${tempPriceRange[0]}</span>
-                  <span>${tempPriceRange[1]}</span>
+                  <span>S/ {tempPriceRange[0].toLocaleString('es-PE')}</span>
+                  <span>S/ {tempPriceRange[1].toLocaleString('es-PE')}</span>
                 </div>
               </div>
             </div>
@@ -864,9 +894,9 @@ export default function ProductsGrid() {
 
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-2">
-                          <span className={`text-xl font-semibold font-roboto ${product.isOnSale ? "text-primary" : "text-gray-900"}`}>${product.price}</span>
+                          <span className={`text-xl font-semibold font-roboto ${product.isOnSale ? "text-primary" : "text-gray-900"}`}>{formatPriceInPEN(product.price)}</span>
                           {product.originalPrice && (
-                            <span className="text-sm text-gray-500 line-through font-roboto">${product.originalPrice}</span>
+                            <span className="text-sm text-gray-500 line-through font-roboto">{formatPriceInPEN(product.originalPrice)}</span>
                           )}
                         </div>
                       </div>

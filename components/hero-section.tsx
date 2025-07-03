@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { ChevronLeft, ChevronRight, Calendar, MapPin, Ticket } from "lucide-react"
+import { useRouter } from "next/navigation"
 
 const upcomingConcerts = [
   {
@@ -22,8 +23,7 @@ const upcomingConcerts = [
     shirts: [
       "/shirts/guns-n-roses/shirt1.png",
       "/shirts/guns-n-roses/shirt2.png",
-      "/shirts/guns-n-roses/shirt3.png",
-      "/shirts/guns-n-roses/shirt4.png"
+      "/shirts/guns-n-roses/shirt3.png"
     ]
   },
   {
@@ -42,8 +42,7 @@ const upcomingConcerts = [
     shirts: [
       "/shirts/my-chemical-romance/shirt1.png",
       "/shirts/my-chemical-romance/shirt2.png",
-      "/shirts/my-chemical-romance/shirt3.png",
-      "/shirts/my-chemical-romance/shirt4.png"
+      "/shirts/my-chemical-romance/shirt3.png"
     ]
   },
   {
@@ -62,8 +61,7 @@ const upcomingConcerts = [
     shirts: [
       "/shirts/green-day/shirt1.png",
       "/shirts/green-day/shirt2.png",
-      "/shirts/green-day/shirt3.png",
-      "/shirts/green-day/shirt4.png"
+      "/shirts/green-day/shirt3.png"
     ]
   },
 ]
@@ -71,17 +69,15 @@ const upcomingConcerts = [
 export default function HeroSection() {
   const [currentSlide, setCurrentSlide] = useState(0)
   const [currentShirt, setCurrentShirt] = useState(0)
+  const router = useRouter()
 
-  // Efecto para cambiar las camisetas cada 2 segundos
-  useEffect(() => {
-    const interval = setInterval(() => {
-      const currentConcert = upcomingConcerts[currentSlide]
-      if (currentConcert?.shirts?.length > 0) {
-        setCurrentShirt(prev => (prev + 1) % currentConcert.shirts.length)
-      }
-    }, 2000)
-    return () => clearInterval(interval)
-  }, [currentSlide])
+  // Función para navegar a productos con filtro de banda
+  const navigateToProducts = (bandName: string) => {
+    const encodedBand = encodeURIComponent(bandName)
+    router.push(`/productos?band=${encodedBand}`)
+  }
+
+  // Efecto removido - sin paginación automática
 
   // Reiniciar contador de camisetas cuando cambie el slide
   useEffect(() => {
@@ -162,6 +158,7 @@ export default function HeroSection() {
                   size="lg"
                   style={{ backgroundColor: currentConcert.color }}
                   className="text-white px-8 border-0 shadow-md transition-all duration-200 hover:scale-105 hover:shadow-lg hover:brightness-110 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-white"
+                  onClick={() => navigateToProducts(currentConcert.band)}
                 >
                   Ver Merch Oficial
                 </Button>
@@ -190,32 +187,41 @@ export default function HeroSection() {
               <div className="hidden md:block">
                 <div className="relative h-96 flex items-center justify-center">
                   
-                  {/* Contenedor de camisetas */}
+                  {/* Contenedor de camisetas - Solo 3 camisetas */}
                   <div className="relative w-full h-full flex items-center justify-center">
-                    {/* Camisetas de fondo (apiladas) */}
-                    {currentConcert.shirts.map((shirt, index) => {
+                    {/* Limitamos a solo 3 camisetas */}
+                    {currentConcert.shirts.slice(0, 3).map((shirt, index) => {
+                      const positions = [
+                        { x: -120, y: 25, scale: 1.0, rotation: -12, zIndex: 2 }, // Izquierda
+                        { x: 0, y: -20, scale: 1.2, rotation: 0, zIndex: 3 },     // Centro
+                        { x: 120, y: 25, scale: 1.0, rotation: 12, zIndex: 2 }    // Derecha
+                      ]
+                      
+                      const currentPos = positions[index]
                       const isActive = index === currentShirt
-                      const offset = (index - currentShirt) * 20
-                      const scale = isActive ? 1 : 0.8 + (1 - Math.abs(index - currentShirt) * 0.1)
-                      const opacity = isActive ? 1 : 0.3 + (1 - Math.abs(index - currentShirt) * 0.2)
-                      const zIndex = isActive ? 10 : 5 - Math.abs(index - currentShirt)
                       
                       return (
                         <div
                           key={index}
-                          className="absolute transition-all duration-1000 ease-in-out"
+                          className="absolute transition-all duration-500 ease-out cursor-pointer group"
                           style={{
-                            transform: `translateX(${offset}px) translateY(${isActive ? -10 : 0}px) scale(${scale}) rotateZ(${isActive ? 0 : (index - currentShirt) * 3}deg)`,
-                            opacity: opacity,
-                            zIndex: zIndex
+                            transform: `translateX(${currentPos.x}px) translateY(${currentPos.y}px) scale(${currentPos.scale}) rotateZ(${currentPos.rotation}deg)`,
+                            zIndex: isActive ? 10 : currentPos.zIndex,
+                            filter: `drop-shadow(25px 25px 20px rgba(0, 0, 0, 0.5))`,
+                            // opacity: isActive ? 1 : 0.8
                           }}
+                          onClick={() => {
+                            setCurrentShirt(index)
+                            navigateToProducts(currentConcert.band)
+                          }}
+                          onMouseEnter={() => setCurrentShirt(index)}
                         >
                           <Image
                             src={shirt}
                             alt={`${currentConcert.band} shirt ${index + 1}`}
-                            width={250}
-                            height={300}
-                            className="object-contain drop-shadow-2xl"
+                            width={350}
+                            height={420}
+                            className="object-contain transition-all duration-300 group-hover:scale-110 group-hover:-translate-y-3"
                           />
                         </div>
                       )
