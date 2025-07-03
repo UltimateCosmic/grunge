@@ -20,6 +20,7 @@ const upcomingConcerts = [
     ticketProvider: "Teleticket",
     ticketUrl: "https://teleticket.com.pe/guns-n-roses-lima-2025",
     message: "¡No te pierdas el regreso de Guns N' Roses a Lima! Consigue el merch oficial antes de que se agote.",
+    spotifyId: "3qm84nBOXUEQ2vnTfUTTFC", // ID de Guns N' Roses en Spotify
     shirts: [
       "/shirts/guns-n-roses/shirt1.png",
       "/shirts/guns-n-roses/shirt2.png",
@@ -39,6 +40,7 @@ const upcomingConcerts = [
     ticketProvider: "Ticketmaster",
     ticketUrl: "https://www.ticketmaster.pe/event/my-chemical-romance",
     message: "My Chemical Romance regresa a Lima con su gira mundial. ¡Consigue tu merch exclusivo para el show!",
+    spotifyId: "7FBcuc1gsnv6Y1nwFtNRCb", // ID de My Chemical Romance en Spotify
     shirts: [
       "/shirts/my-chemical-romance/shirt1.png",
       "/shirts/my-chemical-romance/shirt2.png",
@@ -56,8 +58,9 @@ const upcomingConcerts = [
     merchPreview: "/placeholder.svg?height=400&width=600",
     color: "#ec0981",
     ticketProvider: "Ticketmaster",
-    ticketUrl: "https://www.ticketmaster.pe/event/green-day-estadio-san-marcos-2025",
+    ticketUrl: "https://www.ticketmaster.pe/event-green-day-estadio-san-marcos-2025",
     message: "Green Day llega a Lima con su tour épico. ¡No te quedes sin tu merch oficial!",
+    spotifyId: "7oPftvlwr6VrsViSDV7fJY", // ID de Green Day en Spotify
     shirts: [
       "/shirts/green-day/shirt1.png",
       "/shirts/green-day/shirt2.png",
@@ -69,13 +72,25 @@ const upcomingConcerts = [
 export default function HeroSection() {
   const [currentSlide, setCurrentSlide] = useState(0)
   const [currentShirt, setCurrentShirt] = useState(0)
+  const [scrollY, setScrollY] = useState(0)
   const router = useRouter()
 
   // Función para navegar a productos con filtro de banda
   const navigateToProducts = (bandName: string) => {
-    const encodedBand = encodeURIComponent(bandName)
-    router.push(`/productos?band=${encodedBand}`)
+    // Reemplazar caracteres especiales por nada y espacios por +
+    const normalized = bandName.replace(/[^a-zA-Z0-9 ]/g, '').replace(/\s+/g, '+')
+    router.push(`/productos?band=${normalized}`)
   }
+
+  // Efecto para el parallax
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrollY(window.scrollY)
+    }
+
+    window.addEventListener('scroll', handleScroll)
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [])
 
   // Efecto removido - sin paginación automática
 
@@ -96,18 +111,30 @@ export default function HeroSection() {
 
   return (
     <section className="relative h-[70vh] overflow-hidden">
-        {/* Background Image */}
+        {/* Background Image con Parallax optimizado SOLO para la imagen */}
         <div className="absolute inset-0">
-          <Image
-            src={currentConcert.image || "/placeholder.svg"}
-            alt={`${currentConcert.band} concert`}
-            fill
-            className="object-cover"
-          />
+          <div
+            className="absolute w-full h-full"
+            style={{
+              top: '-15%',
+              bottom: '-15%',
+              height: '130%',
+              transform: `translateY(${Math.max(-120, Math.min(120, scrollY * 0.8))}px)`,
+              transition: 'transform 0.03s ease-out'
+            }}
+          >
+            <Image
+              src={currentConcert.image || "/placeholder.svg"}
+              alt={`${currentConcert.band} concert`}
+              fill
+              className="object-cover scale-115" // Scale mayor para mayor cobertura
+            />
+          </div>
+          {/* Overlay SIN parallax */}
           <div className="absolute inset-0 bg-black/60" />
         </div>
 
-        {/* Content */}
+        {/* Content SIN parallax */}
         <div className="relative z-10 container mx-auto px-4 h-full flex items-center">
           <div className="grid md:grid-cols-2 gap-8 items-center w-full">
             {/* Left side - Concert Info */}
@@ -152,6 +179,27 @@ export default function HeroSection() {
               <p className="text-xl text-gray-200">
                 {currentConcert.message}
               </p>
+
+              {/* Mini Spotify Player */}
+              <div className="bg-black/40 backdrop-blur-sm rounded-lg p-4 border border-white/20">
+                <div className="flex items-center space-x-3 mb-3">
+                  <div className="w-6 h-6 bg-[#1DB954] rounded-full flex items-center justify-center">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="white">
+                      <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.84-.179-.959-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.361 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.301 11.28-1.02 15.721 1.621.539.3.719 1.02.42 1.56-.299.421-1.02.599-1.559.3z"/>
+                    </svg>
+                  </div>
+                  <span className="text-sm text-white font-medium">Escucha en Spotify</span>
+                </div>
+                <iframe
+                  src={`https://open.spotify.com/embed/artist/${currentConcert.spotifyId}?utm_source=generator&theme=0`}
+                  width="100%"
+                  height="152"
+                  frameBorder="0"
+                  allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+                  loading="lazy"
+                  className="rounded"
+                ></iframe>
+              </div>
 
               <div className="flex space-x-4">
                 <Button
@@ -233,7 +281,7 @@ export default function HeroSection() {
           </div>
         </div>
 
-        {/* Navigation Arrows */}
+        {/* Navigation Arrows SIN parallax */}
         <button
           onClick={prevSlide}
           className="absolute left-4 top-1/2 transform -translate-y-1/2 z-20 bg-black/50 hover:bg-black/70 text-white p-2 rounded-full transition-colors"
@@ -247,16 +295,19 @@ export default function HeroSection() {
           <ChevronRight className="h-6 w-6" />
         </button>
 
-        {/* Dots Indicator */}
+        {/* Dots Indicator SIN parallax */}
         <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 z-20 flex space-x-2">
-          {upcomingConcerts.map((_, index) => (
+            {upcomingConcerts.map((concert, index) => (
             <button
               key={index}
               onClick={() => setCurrentSlide(index)}
-              className={`w-3 h-3 rounded-full transition-colors ${index === currentSlide ? "bg-brand-500" : "bg-white/50"
-                }`}
+              className={`w-3 h-3 rounded-full transition-colors ${index === currentSlide ? "" : "bg-white/50"}`}
+              style={{
+              backgroundColor: index === currentSlide ? concert.color : undefined,
+              border: index === currentSlide ? `2px solid ${concert.color}` : undefined,
+              }}
             />
-          ))}
+            ))}
         </div>
       </section>
   )
