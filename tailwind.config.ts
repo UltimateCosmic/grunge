@@ -103,7 +103,7 @@ const config: Config = {
         scroll: "scroll 30s linear infinite",
       },
       fontFamily: {
-        aton: ["Anton", "sans-serif"],
+        aton: ["Bebas Neue", "sans-serif"],
         roboto: ["Roboto Flex", "sans-serif"],
       },
     },

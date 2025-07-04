@@ -1,3 +1,4 @@
+import { Suspense } from "react"
 import Header from "@/components/header"
 import Footer from "@/components/footer"
 import ProductsGrid from "@/components/products-grid"
@@ -21,14 +22,24 @@ export default function ProductsPage() {
             }}
             />
           <div className="relative z-10 container mx-auto px-4 text-center">
-            <h1 className="text-4xl md:text-5xl mb-4 font-aton uppercase">Nuestros Productos</h1>
-            <p className="text-xl text-brand-100 max-w-2xl mx-auto font-roboto">
+            <h1
+              className="text-5xl md:text-6xl font-aton uppercase"
+              style={{ textShadow: "2px 4px 16px rgba(0,0,0,0.25)" }}
+            >
+              Nuestros Productos
+            </h1>
+            <p
+              className="text-xl text-brand-100 max-w-2xl mx-auto font-roboto drop-shadow-sm"
+              style={{ textShadow: "2px 4px 16px rgba(0,0,0,0.25)" }}
+            >
               Descubre el merch oficial de las mejores bandas de rock e indie
             </p>
           </div>
         </section>
 
-        <ProductsGrid />
+        <Suspense fallback={<div className="container mx-auto px-4 py-8 text-center">Cargando productos...</div>}>
+          <ProductsGrid />
+        </Suspense>
       </main>
       <Footer />
     </div>

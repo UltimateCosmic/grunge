@@ -2,6 +2,7 @@ import type React from "react"
 import type { Metadata } from "next"
 import { Orbitron, Roboto_Flex } from "next/font/google"
 import "./globals.css"
+import { CartProvider } from "@/components/cart-context"
 
 const orbitron = Orbitron({
   subsets: ["latin"],
@@ -28,7 +29,11 @@ export default function RootLayout({
 }) {
   return (
     <html lang="es">
-      <body className={`${orbitron.variable} ${robotoFlex.variable} font-roboto antialiased`}>{children}</body>
+      <body className={`${orbitron.variable} ${robotoFlex.variable} font-roboto antialiased`}>
+        <CartProvider>
+          {children}
+        </CartProvider>
+      </body>
     </html>
   )
 }

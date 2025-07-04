@@ -30,7 +30,7 @@ export default function Footer() {
 
           {/* Quick Links */}
           <div className="space-y-4">
-            <h3 className="text-white font-aton uppercase">Enlaces Rápidos</h3>
+            <h3 className="text-white font-aton uppercase text-2xl">Enlaces Rápidos</h3>
             <div className="space-y-2">
               <Link href="/bandas" className="block text-gray-400 hover:text-white transition-colors text-sm">
                 Todas las Bandas
@@ -49,7 +49,7 @@ export default function Footer() {
 
           {/* Customer Service */}
           <div className="space-y-4">
-            <h3 className="text-white font-aton uppercase">Atención al Cliente</h3>
+            <h3 className="text-white font-aton uppercase text-2xl">Atención al Cliente</h3>
             <div className="space-y-2">
               <Link href="/ayuda" className="block text-gray-400 hover:text-white transition-colors text-sm">
                 Centro de Ayuda
@@ -68,7 +68,7 @@ export default function Footer() {
 
           {/* Contact Info */}
           <div className="space-y-4">
-            <h3 className="text-white font-aton uppercase">Contacto</h3>
+            <h3 className="text-white font-aton uppercase text-2xl">Contacto</h3>
             <div className="space-y-3">
               <div className="flex items-center space-x-2 text-gray-400 text-sm">
                 <Mail className="h-4 w-4 text-brand-500" />

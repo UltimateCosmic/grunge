@@ -1,29 +1,14 @@
 "use client"
 
 import { useState, useEffect, useCallback, useMemo, useRef } from "react"
-import Image from "next/image"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Star, ShoppingCart, Filter, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Slider } from "@/components/ui/slider"
+import ProductCard from "@/components/product-card"
 import qs from "qs"
-
-// Solución temporal para el error de tipos de 'qs'
-declare module 'qs';
-
-// Tasa de cambio: 1 USD = 3.55 PEN
-const USD_TO_PEN_RATE = 3.55;
-
-// Función para convertir dólares a soles
-const convertToPEN = (usdPrice: number): number => {
-  return Math.round(usdPrice * USD_TO_PEN_RATE);
-};
-
-// Función para formatear precio en soles
-const formatPriceInPEN = (price: number): string => {
-  return `S/ ${price.toLocaleString('es-PE')}`;
-};
+import { mapProduct, convertToPEN } from "@/lib/map-product"
 
 // Endpoint global de búsqueda Findify (devuelve productos y facets globales)
 const API_SEARCH = "https://api-v3.findify.io/v3/search/" +
@@ -68,8 +53,8 @@ function buildFindifyFiltersQS({ bands, types, sizes, priceRange, dynamicPrice }
   }
   if (priceRange[0] > dynamicPrice[0] || priceRange[1] < dynamicPrice[1]) {
     // Convertir los precios de PEN a USD para la API
-    const fromUSD = Math.floor(priceRange[0] / USD_TO_PEN_RATE);
-    const toUSD = Math.ceil(priceRange[1] / USD_TO_PEN_RATE);
+    const fromUSD = Math.floor(priceRange[0] / 3.55);
+    const toUSD = Math.ceil(priceRange[1] / 3.55);
     filters.push({
       name: "price",
       type: "range",
@@ -83,7 +68,7 @@ function buildFindifyFiltersQS({ bands, types, sizes, priceRange, dynamicPrice }
 export default function ProductsGrid() {
   const searchParams = useSearchParams()
   const router = useRouter()
-  const bandaSlug = searchParams.get("banda")
+  const bandaSlug = searchParams?.get("banda")
 
   const [products, setProducts] = useState<any[]>([])
   const [facets, setFacets] = useState<any[]>([])
@@ -347,29 +332,29 @@ export default function ProductsGrid() {
   // para evitar múltiples actualizaciones y reducir las dependencias
 
   // Función pura para mapear productos (fuera del useMemo)
-  const mapProduct = (item: any) => {
-    const usdPrice = Array.isArray(item.price) ? item.price[0] : (typeof item.price === "number" ? item.price : 0);
-    const usdOriginalPrice = item.compare_at || null;
+  // const mapProduct = (item: any) => {
+  //   const usdPrice = Array.isArray(item.price) ? item.price[0] : (typeof item.price === "number" ? item.price : 0);
+  //   const usdOriginalPrice = item.compare_at || null;
     
-    return {
-      id: item.id,
-      name: item.title,
-      band: item.brand, // Usar el valor tal cual viene de la API
-      type: typeof item.custom_fields?.apparel === "string" ? item.custom_fields.apparel : Array.isArray(item.custom_fields?.apparel) ? item.custom_fields.apparel[0] : "",
-      price: convertToPEN(usdPrice), // Convertir a soles
-      originalPrice: usdOriginalPrice ? convertToPEN(usdOriginalPrice) : null, // Convertir a soles
-      image: item.image_url || "/placeholder.svg?height=300&width=300",
-      rating: typeof item.rating === "number" ? item.rating : 0,
-      reviews: typeof item.reviews === "number" ? item.reviews : 0,
-      isOnSale: Array.isArray(item.discount) && item.discount.length > 0,
-      sizes: Array.isArray(item.size) ? item.size : typeof item.size === "string" ? [item.size] : Array.isArray(item.custom_fields?.variant_title) ? item.custom_fields.variant_title : typeof item.custom_fields?.variant_title === "string" ? [item.custom_fields.variant_title] : [],
-      url: item.product_url ? `https://www.bandmerch.com${item.product_url}` : undefined,
-    };
-  };
+  //   return {
+  //     id: item.id,
+  //     name: item.title,
+  //     band: item.brand, // Usar el valor tal cual viene de la API
+  //     type: typeof item.custom_fields?.apparel === "string" ? item.custom_fields.apparel : Array.isArray(item.custom_fields?.apparel) ? item.custom_fields.apparel[0] : "",
+  //     price: convertToPEN(usdPrice), // Convertir a soles
+  //     originalPrice: usdOriginalPrice ? convertToPEN(usdOriginalPrice) : null, // Convertir a soles
+  //     image: item.image_url || "/placeholder.svg?height=300&width=300",
+  //     rating: typeof item.rating === "number" ? item.rating : 0,
+  //     reviews: typeof item.reviews === "number" ? item.reviews : 0,
+  //     isOnSale: Array.isArray(item.discount) && item.discount.length > 0,
+  //     sizes: Array.isArray(item.size) ? item.size : typeof item.size === "string" ? [item.size] : Array.isArray(item.custom_fields?.variant_title) ? item.custom_fields.variant_title : typeof item.custom_fields?.variant_title === "string" ? [item.custom_fields.variant_title] : [],
+  //     url: item.product_url ? `https://www.bandmerch.com${item.product_url}` : undefined,
+  //   };
+  // };
 
   // Mapeo de productos de la API (optimizado con useMemo)
   const mappedProducts = useMemo(() => {
-    return products.map(mapProduct);
+    return products.map(product => mapProduct(product));
   }, [products]);
 
   const handleBandChange = (band: string, checked: boolean) => {
@@ -546,7 +531,7 @@ export default function ProductsGrid() {
             {dynamicBands.length > 0 && (
               <div className="mb-4">
                 <div className="flex items-center justify-between">
-                  <h4 className="text-gray-900 mb-3 font-aton uppercase text-sm">Bandas</h4>
+                  <h4 className="text-gray-900 mb-3 font-aton uppercase text-base">Bandas</h4>
                   {dynamicBands.length > INITIAL_FILTER_LIMIT && (
                     <button 
                       onClick={() => setExpandedBands(!expandedBands)} 
@@ -615,7 +600,7 @@ export default function ProductsGrid() {
             {dynamicTypes.length > 0 && (
               <div className="mb-4">
                 <div className="flex items-center justify-between">
-                  <h4 className="text-gray-900 mb-3 font-aton uppercase text-sm">Tipo de Producto</h4>
+                  <h4 className="text-gray-900 mb-3 font-aton uppercase text-base">Tipo de Producto</h4>
                   {dynamicTypes.length > INITIAL_FILTER_LIMIT && (
                     <button 
                       onClick={() => setExpandedTypes(!expandedTypes)} 
@@ -684,7 +669,7 @@ export default function ProductsGrid() {
             {dynamicSizes.length > 0 && (
               <div className="mb-4">
                 <div className="flex items-center justify-between">
-                  <h4 className="text-gray-900 mb-3 font-aton uppercase text-sm">Tamaño</h4>
+                  <h4 className="text-gray-900 mb-3 font-aton uppercase text-base">Tamaño</h4>
                   {dynamicSizes.length > INITIAL_FILTER_LIMIT && (
                     <button 
                       onClick={() => setExpandedSizes(!expandedSizes)} 
@@ -752,7 +737,7 @@ export default function ProductsGrid() {
             {/* Precio Filter */}
             <div className="mb-4">
               <div className="flex items-center justify-between">
-                <h4 className="text-gray-900 mb-3 font-aton uppercase text-sm">Precio</h4>
+                <h4 className="text-gray-900 mb-3 font-aton uppercase text-base">Precio</h4>
               </div>
               <div className="space-y-4">
                 <Slider
@@ -844,64 +829,10 @@ export default function ProductsGrid() {
             <>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {mappedProducts.map((product: any) => (
-                  <div
+                  <ProductCard
                     key={product.id}
-                    className="group bg-white border border-gray-200 rounded-lg overflow-hidden hover:shadow-xl transition-all duration-300"
-                  >
-                    <div className="relative overflow-hidden p-4 flex items-center justify-center">
-                      <Image
-                      src={product.image || "/placeholder.svg"}
-                      alt={product.name}
-                      width={240}
-                      height={240}
-                      className="max-w-full max-h-56 object-contain transition-transform duration-300 group-hover:scale-105"
-                      />
-                      {product.isOnSale && (
-                        <div className="absolute top-3 left-3 bg-brand-500 text-white px-2 py-1 rounded-full text-xs ">
-                          OFERTA
-                        </div>
-                      )}
-                      <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Button size="sm" className="bg-white text-gray-900 hover:bg-gray-100" asChild>
-                          <a href={product.url} target="_blank" rel="noopener noreferrer">
-                            <ShoppingCart className="h-4 w-4" />
-                          </a>
-                        </Button>
-                      </div>
-                    </div>
-
-                    <div className="p-4">
-                      <div className="mb-2">
-                        <p className="text-sm text-brand-600 font-medium font-roboto">{product.band}</p>
-                        <h3 className="text-lg text-gray-900 transition-colors font-roboto">
-                          {product.name}
-                        </h3>
-                      </div>
-
-                      {Array.isArray(product.sizes) && product.sizes.length > 0 &&
-                        !(product.sizes.length === 1 && product.sizes[0] === "Default Title") && (
-                          <div className="mb-3">
-                            <p className="text-xs text-gray-500 mb-1 font-roboto">Tallas disponibles:</p>
-                            <div className="flex flex-wrap gap-1">
-                              {product.sizes.filter((size: any) => typeof size === "string").map((size: string) => (
-                                <span key={size} className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded font-roboto">
-                                  {size}
-                                </span>
-                              ))}
-                            </div>
-                          </div>
-                      )}
-
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-2">
-                          <span className={`text-xl font-semibold font-roboto ${product.isOnSale ? "text-primary" : "text-gray-900"}`}>{formatPriceInPEN(product.price)}</span>
-                          {product.originalPrice && (
-                            <span className="text-sm text-gray-500 line-through font-roboto">{formatPriceInPEN(product.originalPrice)}</span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                    product={product}
+                  />
                 ))}
               </div>
 
