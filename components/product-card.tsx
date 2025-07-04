@@ -66,7 +66,13 @@ export default function ProductCard({ product, className = "" }: ProductCardProp
         </div>
         <div className="p-4 flex flex-col flex-1">
           <div className="mb-2">
-            <p className="text-sm text-brand-600 font-medium font-roboto">{product.band}</p>
+            <Link
+              href={`/productos?banda=${encodeURIComponent(product.band)}`}
+              className="text-sm text-brand-600 font-medium font-roboto hover:underline hover:text-brand-700 transition-colors"
+              onClick={e => e.stopPropagation()}
+            >
+              {product.band}
+            </Link>
             <h3 className="text-lg text-gray-900 transition-colors font-roboto">
               {product.name}
             </h3>

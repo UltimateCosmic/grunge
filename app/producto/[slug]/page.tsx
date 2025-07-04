@@ -1,9 +1,9 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useParams } from "next/navigation"
 import Image from "next/image"
-import { ShoppingCart, Heart, Share2, Star } from "lucide-react"
+import { ShoppingCart, Heart, Share2, Star, Copy } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
@@ -53,6 +53,8 @@ export default function ProductPage() {
   const [currentImage, setCurrentImage] = useState(0)
   const [zoomActive, setZoomActive] = useState(false);
   const [zoomPos, setZoomPos] = useState({ x: 0, y: 0 });
+  const [shareOpen, setShareOpen] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
   const ZOOM_SIZE = 180; // diámetro del círculo de zoom
   const ZOOM_SCALE = 2.2; // nivel de zoom
   const { addToCart } = useCart();
@@ -126,29 +128,22 @@ export default function ProductPage() {
 
   const images = product?.images || []
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-16 w-16 border-4 border-brand-500 border-t-transparent"></div>
-      </div>
-    )
-  }
-
-  if (!product) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">Producto no encontrado</h1>
-          <p className="text-gray-600">El producto que buscas no existe o ha sido eliminado.</p>
-        </div>
-      </div>
-    )
-  }
-
   return (
     <div className="min-h-screen bg-white">
       <Header />
       <main>
+        {isLoading ? (
+          <div className="min-h-[70vh] bg-gray-50 flex items-center justify-center">
+            <div className="animate-spin rounded-full h-16 w-16 border-4 border-brand-500 border-t-transparent"></div>
+          </div>
+        ) : !product ? (
+          <div className="min-h-[70vh] bg-gray-50 flex items-center justify-center">
+            <div className="text-center">
+              <h1 className="text-2xl font-bold text-gray-900 mb-4">Producto no encontrado</h1>
+              <p className="text-gray-600">El producto que buscas no existe o ha sido eliminado.</p>
+            </div>
+          </div>
+        ) : (
         <div className="container mx-auto px-4 py-8">
           <div className="grid lg:grid-cols-2 gap-12">
             {/* Galería de imágenes */}
@@ -535,10 +530,59 @@ export default function ProductPage() {
                       <Image src="/rockabilia.avif" alt="Rockabilia" width={70} height={24} className="h-6 w-auto object-contain" />
                     </Button>
                   </a>
-                  <Button variant="outline" size="lg" className="flex-1">
-                    <Share2 className="w-5 h-5 mr-2" />
-                    Compartir
-                  </Button>
+                  <Dialog open={shareOpen} onOpenChange={setShareOpen}>
+                    <DialogTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="lg"
+                        className="flex-1"
+                      >
+                        <Share2 className="w-5 h-5 mr-2" />
+                        Compartir
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-md">
+                      <DialogHeader>
+                        <DialogTitle>Compartir producto</DialogTitle>
+                      </DialogHeader>
+                      <div className="flex items-center gap-2 mb-4">
+                        <input
+                          ref={inputRef}
+                          type="text"
+                          value={typeof window !== 'undefined' ? window.location.href : ''}
+                          readOnly
+                          className="flex-1 border border-gray-300 rounded px-3 py-2 text-gray-700 bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-300 h-11"
+                          onFocus={e => e.target.select()}
+                        />
+                        <button
+                          type="button"
+                          aria-label="Copiar enlace"
+                          className="flex items-center justify-center border border-gray-300 rounded bg-gray-100 hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-300 transition-colors h-11 w-11 p-0"
+                          onClick={async () => {
+                            const url = typeof window !== 'undefined' ? window.location.href : '';
+                            try {
+                              await navigator.clipboard.writeText(url);
+                              toast({
+                                title: 'Enlace copiado',
+                                description: 'La URL del producto se copió al portapapeles.',
+                                variant: 'default',
+                              });
+                              if (inputRef.current) inputRef.current.select();
+                            } catch {
+                              toast({
+                                title: 'Error',
+                                description: 'No se pudo copiar el enlace.',
+                                variant: 'destructive',
+                              });
+                            }
+                          }}
+                        >
+                          <Copy className="w-5 h-5 text-gray-600" />
+                        </button>
+                      </div>
+                      <p className="text-sm text-gray-500">Copia y comparte este enlace con quien quieras.</p>
+                    </DialogContent>
+                  </Dialog>
                 </div>
               </div>
 
@@ -558,9 +602,12 @@ export default function ProductPage() {
             </div>
           </div>
         </div>
+      )}
       </main>
       {/* Más productos de la misma banda */}
-      <MasProductosDeBanda brand={product.brand} excludeId={product.id} />
+      {!isLoading && product && (
+        <MasProductosDeBanda brand={product.brand} excludeId={product.id} />
+      )}
       <Footer />
     </div>
   )
