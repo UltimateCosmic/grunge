@@ -20,7 +20,7 @@ const rockPlaylist = [
   {
     id: 1,
     title: "Welcome to the Jungle",
-    artist: "Guns N' Roses",
+    artist: "Guns N Roses",
     src: "/music/guns-n-roses-welcome-to-the-jungle.mp3"
   },
   {
@@ -324,10 +324,6 @@ export default function Header() {
       setTimeout(() => extractAlbumArt(), 100)
     }
 
-    if (audioRef.current) {
-      audioRef.current.volume = volume
-    }
-
     // Listener para detectar primera interacción del usuario
     const handleFirstInteraction = () => {
       if (!hasUserInteracted) {
@@ -347,7 +343,14 @@ export default function Header() {
       document.removeEventListener('keydown', handleFirstInteraction)
       document.removeEventListener('touchstart', handleFirstInteraction)
     }
-  }, [hasUserInteracted, volume])
+  }, [hasUserInteracted])
+
+  // Nuevo effect SOLO para actualizar el volumen del audio
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.volume = volume
+    }
+  }, [volume])
 
   return (
     <>
@@ -393,9 +396,13 @@ export default function Header() {
                   <h4 className="text-white text-xs font-medium truncate max-w-32">
                     {rockPlaylist[currentSong].title}
                   </h4>
-                  <p className="text-gray-400 text-xs truncate max-w-32">
+                  <Link
+                    href={`/productos?band=${encodeURIComponent(rockPlaylist[currentSong].artist)}`}
+                    className="text-brand-500 hover:underline text-xs truncate max-w-32 block cursor-pointer"
+                    title={`Ver productos de ${rockPlaylist[currentSong].artist}`}
+                  >
                     {rockPlaylist[currentSong].artist}
-                  </p>
+                  </Link>
                 </div>
 
                 {/* Controls */}
@@ -473,8 +480,8 @@ export default function Header() {
                   <Link href="/productos" className="text-gray-300 hover:text-white transition-colors text-sm">
                     Productos
                   </Link>
-                  <Link href="/ofertas" className="text-gray-300 hover:text-white transition-colors text-sm">
-                    Ofertas
+                  <Link href="/conciertos" className="text-gray-300 hover:text-white transition-colors text-sm">
+                    Conciertos
                   </Link>
                   <Link href="/contacto" className="text-gray-300 hover:text-white transition-colors text-sm">
                     Contacto

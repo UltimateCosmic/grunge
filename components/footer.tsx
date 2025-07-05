@@ -38,8 +38,8 @@ export default function Footer() {
               <Link href="/conciertos" className="block text-gray-400 hover:text-white transition-colors text-sm">
                 Próximos Conciertos
               </Link>
-              <Link href="/ofertas" className="block text-gray-400 hover:text-white transition-colors text-sm">
-                Ofertas Especiales
+              <Link href="/conciertos" className="block text-gray-400 hover:text-white transition-colors text-sm">
+                Próximos Conciertos
               </Link>
               <Link href="/nuevos" className="block text-gray-400 hover:text-white transition-colors text-sm">
                 Productos Nuevos

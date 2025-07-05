@@ -233,12 +233,12 @@ export default function ProductPageClient() {
                       <>
                         <span className="text-2xl font-bold text-brand-600">{formatPriceInPEN(getCurrentPrice())}</span>
                         <span className="text-lg text-gray-500 line-through">{formatPriceInPEN(getOriginalPrice()!)}</span>
-                        <span className="bg-brand-50 text-brand-700 text-sm py-0.5 px-2 rounded-full border border-brand-200">
-                          {Math.round(((product.compare_at - product.price) / product.compare_at) * 100)}% OFF
+                        <span className="bg-brand-500 text-white text-sm py-0.5 px-2 rounded-full">
+                          {Math.round(((product.compare_at - product.price) / product.compare_at) * 100)}% DSCTO
                         </span>
                       </>
                     ) : (
-                      <span className="text-2xl font-bold text-brand-600">{formatPriceInPEN(getCurrentPrice())}</span>
+                      <span className="text-2xl font-bold text-black">{formatPriceInPEN(getCurrentPrice())}</span>
                     )}
                   </div>
                 </div>

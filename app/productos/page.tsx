@@ -25,7 +25,7 @@ export default function ProductsPage() {
         />
         <div className="relative z-10 container mx-auto px-4 text-center">
           <h1
-            className="text-5xl md:text-6xl font-aton uppercase"
+            className="text-5xl md:text-7xl font-bold font-aton uppercase"
             style={{ textShadow: "2px 4px 16px rgba(0,0,0,0.25)" }}
           >
             Nuestros Productos
