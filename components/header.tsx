@@ -28,6 +28,18 @@ const rockPlaylist = [
     title: "I'm Not Okay",
     artist: "My Chemical Romance",
     src: "/music/mcr-im-not-okay.mp3"
+  },
+  {
+    id: 3,
+    title: "American Idiot",
+    artist: "Green Day",
+    src: "/music/green-day-american-idiot.mp3"
+  },
+  {
+    id: 4,
+    title: "The Emptiness Machine",
+    artist: "Linkin Park",
+    src: "/music/linkin-park-the-emptiness-machine.mp3"
   }
 ]
 
@@ -41,6 +53,8 @@ export default function Header() {
   const [isLoadingArt, setIsLoadingArt] = useState(false)
   const [showSearch, setShowSearch] = useState(false)
   const [showCart, setShowCart] = useState(false);
+  const [hasUserInteracted, setHasUserInteracted] = useState(false)
+  const [autoplayAttempted, setAutoplayAttempted] = useState(false)
   const audioRef = useRef<HTMLAudioElement>(null)
   const { items, removeFromCart, getCount } = useCart();
   const { toast } = useToast();
@@ -50,12 +64,23 @@ export default function Header() {
   const togglePlay = () => {
     if (!audioRef.current) return
 
+    // Marcar que el usuario ha interactuado
+    if (!hasUserInteracted) {
+      setHasUserInteracted(true)
+    }
+
     if (isPlaying) {
       audioRef.current.pause()
+      setIsPlaying(false)
     } else {
-      audioRef.current.play()
+      audioRef.current.play().then(() => {
+        setIsPlaying(true)
+      }).catch((error) => {
+        console.log('Error al reproducir:', error)
+        // Si hay error, mantener el estado como no reproduciendo
+        setIsPlaying(false)
+      })
     }
-    setIsPlaying(!isPlaying)
   }
 
   const nextSong = () => {
@@ -200,9 +225,23 @@ export default function Header() {
 
   const setDefaultAlbumArt = () => {
     // Fallback: usar imágenes extraídas manualmente de los MP3
-    const defaultArt = currentSong === 0
-      ? "/album-art/guns-n-roses-appetite-for-destruction.jpg"
-      : "/album-art/mcr-three-cheers.jpg"
+    let defaultArt;
+    switch(currentSong) {
+      case 0:
+        defaultArt = "/album-art/guns-n-roses-appetite-for-destruction.jpg";
+        break;
+      case 1:
+        defaultArt = "/album-art/mcr-three-cheers.jpg";
+        break;
+      case 2:
+        defaultArt = "/album-art/green-day-american-idiot.jpg";
+        break;
+      case 3:
+        defaultArt = "/album-art/linkin-park-meteora.jpg";
+        break;
+      default:
+        defaultArt = "/album-art/default-rock.jpg";
+    }
     setAlbumArt(defaultArt)
     setIsLoadingArt(false) // Finalizar loading
   }
@@ -240,7 +279,35 @@ export default function Header() {
     return () => clearTimeout(timer)
   }, [currentSong])
 
-  // Effect para cargar jsmediatags y configurar volumen inicial
+  // Effect para detectar primera interacción del usuario e intentar autoplay
+  useEffect(() => {
+    if (hasUserInteracted && !autoplayAttempted) {
+      setAutoplayAttempted(true)
+      
+      // Intentar autoplay después de la primera interacción
+      setTimeout(() => {
+        if (audioRef.current && !isPlaying) {
+          console.log('Intentando autoplay después de interacción del usuario')
+          audioRef.current.play().then(() => {
+            setIsPlaying(true)
+            console.log('Autoplay exitoso después de interacción')
+          }).catch((error) => {
+            console.log('Autoplay falló incluso después de interacción:', error)
+          })
+        }
+      }, 500)
+    }
+  }, [hasUserInteracted, autoplayAttempted, isPlaying])
+
+  // Effect para configurar la canción aleatoria inicial
+  useEffect(() => {
+    // Seleccionar una canción aleatoria al cargar
+    const randomSong = Math.floor(Math.random() * rockPlaylist.length)
+    console.log(`Canción aleatoria seleccionada: ${randomSong} - ${rockPlaylist[randomSong].title}`)
+    setCurrentSong(randomSong)
+  }, [])
+
+  // Effect para cargar jsmediatags, configurar volumen inicial y detectar interacciones
   useEffect(() => {
     // Cargar jsmediatags desde CDN si no está disponible
     if (!window.jsmediatags) {
@@ -260,7 +327,27 @@ export default function Header() {
     if (audioRef.current) {
       audioRef.current.volume = volume
     }
-  }, [])
+
+    // Listener para detectar primera interacción del usuario
+    const handleFirstInteraction = () => {
+      if (!hasUserInteracted) {
+        console.log('Primera interacción del usuario detectada')
+        setHasUserInteracted(true)
+      }
+    }
+
+    // Agregar listeners para diferentes tipos de interacción
+    document.addEventListener('click', handleFirstInteraction)
+    document.addEventListener('keydown', handleFirstInteraction)
+    document.addEventListener('touchstart', handleFirstInteraction)
+
+    return () => {
+      // Limpiar listeners
+      document.removeEventListener('click', handleFirstInteraction)
+      document.removeEventListener('keydown', handleFirstInteraction)
+      document.removeEventListener('touchstart', handleFirstInteraction)
+    }
+  }, [hasUserInteracted, volume])
 
   return (
     <>

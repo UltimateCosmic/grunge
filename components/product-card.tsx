@@ -7,18 +7,27 @@ import { Button } from "@/components/ui/button"
 
 // Función para generar slug desde la URL del producto
 const generateSlug = (url: string): string => {
-  if (!url) return 'producto-no-disponible'
+  console.log('URL recibida en generateSlug:', url)
+  
+  if (!url) {
+    console.log('URL vacía, retornando producto-no-disponible')
+    return 'producto-no-disponible'
+  }
   
   // Si es una URL completa, extraer la parte del path
   try {
     const urlObj = new URL(url)
     const path = urlObj.pathname
+    console.log('Path extraído de URL completa:', path)
     // Extraer el slug del path /products/[slug]
     const match = path.match(/\/products\/([^?]+)/)
+    console.log('Match encontrado:', match)
     return match ? match[1] : 'producto-no-disponible'
   } catch {
+    console.log('URL no es completa, tratando como path relativo:', url)
     // Si no es una URL válida, asumir que es un path relativo
     const match = url.match(/\/products\/([^?]+)/)
+    console.log('Match en path relativo:', match)
     return match ? match[1] : 'producto-no-disponible'
   }
 }
@@ -44,7 +53,12 @@ interface ProductCardProps {
 }
 
 export default function ProductCard({ product, className = "" }: ProductCardProps) {
+  console.log('ProductCard recibió producto:', product)
+  console.log('URL del producto:', product.url)
+  
   const productSlug = generateSlug(product.url || '')
+  console.log('Slug generado:', productSlug)
+  
   return (
     <Link href={`/producto/${productSlug}`} className="block h-full">
       <div
