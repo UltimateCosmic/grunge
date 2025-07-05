@@ -1,8 +1,7 @@
-import type React from "react"
 import type { Metadata } from "next"
 import { Orbitron, Roboto_Flex } from "next/font/google"
 import "./globals.css"
-import { CartProvider } from "@/components/cart-context"
+import RootLayoutClient from "./layout-client"
 
 const orbitron = Orbitron({
   subsets: ["latin"],
@@ -14,8 +13,12 @@ const robotoFlex = Roboto_Flex({
   variable: "--font-roboto",
 })
 
+// Estos metadatos serán el fallback si las páginas no definen los suyos propios
 export const metadata: Metadata = {
-  title: "Grunge | Tienda Oficial de Merch",
+  title: {
+    default: "Grunge | Tienda Oficial de Merch",
+    template: "%s | Grunge" // Esta plantilla se usará cuando las páginas definan solo el "title"
+  },
   description: "Tu tienda oficial de merch de las mejores bandas de rock e indie",
   icons: {
     icon: "/grunge-icon.png",
@@ -30,9 +33,9 @@ export default function RootLayout({
   return (
     <html lang="es">
       <body className={`${orbitron.variable} ${robotoFlex.variable} font-roboto antialiased`}>
-        <CartProvider>
+        <RootLayoutClient>
           {children}
-        </CartProvider>
+        </RootLayoutClient>
       </body>
     </html>
   )

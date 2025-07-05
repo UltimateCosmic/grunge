@@ -414,23 +414,31 @@ export default function Header() {
                   variant="ghost"
                   size="icon"
                   className="text-gray-300 hover:text-black"
-                  onClick={() => setShowSearch((v) => !v)}
+                  onClick={() => {
+                    // Si el carrito está abierto, cerrarlo
+                    if (showCart) setShowCart(false);
+                    setShowSearch((v) => !v);
+                  }}
                 >
                   <Search className="h-5 w-5" />
                 </Button>
                 {showSearch && (
                   <div className="absolute right-0 mt-2 z-50 w-72">
-                    <Searchbar onClose={() => setShowSearch(false)} />
+                    <Searchbar onClose={() => setShowSearch(false)} autoFocus />
                   </div>
                 )}
               </div>
 
-              <div className="relative">
+              <div>
                 <Button
                   variant="ghost"
                   size="icon"
                   className="text-gray-300 hover:text-black relative"
-                  onClick={() => setShowCart((v) => !v)}
+                  onClick={() => {
+                    // Si la búsqueda está abierta, cerrarla
+                    if (showSearch) setShowSearch(false);
+                    setShowCart((v) => !v);
+                  }}
                   aria-label="Ver carrito"
                 >
                   <ShoppingCart className="h-5 w-5" />
@@ -440,54 +448,6 @@ export default function Header() {
                     </span>
                   )}
                 </Button>
-                {showCart && (
-                  <div className="absolute right-0 mt-2 w-80 bg-white rounded shadow-lg z-50 border border-gray-200">
-                    <div className="flex items-center justify-between px-4 py-2 border-b">
-                      <span className="font-semibold text-gray-800">Carrito</span>
-                      <button onClick={() => setShowCart(false)} aria-label="Cerrar carrito">
-                        <X className="w-5 h-5 text-gray-500 hover:text-black" />
-                      </button>
-                    </div>
-                    {items.length === 0 ? (
-                      <div className="p-4 text-gray-500 text-center">Tu carrito está vacío.</div>
-                    ) : (
-                      <ul className="max-h-64 overflow-y-auto divide-y">
-                        {items.map((item: import("@/components/cart-context").CartItem) => (
-                          <li key={item.id + (item.size || "")} className="flex items-center gap-3 px-4 py-3">
-                            <img src={item.image} alt={item.title} className="w-12 h-12 rounded object-cover border" />
-                            <div className="flex-1 min-w-0">
-                              <div className="font-medium text-sm truncate">{item.title}</div>
-                              <div className="text-xs text-gray-500 truncate">Talla: {item.size}</div>
-                              <div className="text-xs text-gray-500">Cantidad: {item.quantity}</div>
-                              <div className="text-xs text-gray-800 font-semibold">S/. {item.price.toFixed(2)}</div>
-                            </div>
-                            <button
-                              className="ml-2 text-gray-400 hover:text-red-600"
-                              onClick={() => {
-                                removeFromCart(item.id, item.size);
-                                toast({ title: "Producto eliminado", description: item.title });
-                              }}
-                              aria-label="Eliminar del carrito"
-                            >
-                              <X className="w-4 h-4" />
-                            </button>
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                    {items.length > 0 && (
-                      <div className="px-4 py-3 border-t flex flex-col gap-2">
-                        <div className="flex justify-between text-sm">
-                          <span>Total:</span>
-                          <span className="font-semibold">S/. {items.reduce((sum: number, item: import("@/components/cart-context").CartItem) => sum + item.price * item.quantity, 0).toFixed(2)}</span>
-                        </div>
-                        <Button size="lg" className="w-full" disabled>
-                          Finalizar compra (próximamente)
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                )}
               </div>
               <Button
                 variant="ghost"
@@ -509,6 +469,105 @@ export default function Header() {
         onEnded={handleSongEnd}
         preload="metadata"
       />
+      
+      {/* Sidebar del Carrito */}
+      <div 
+        className={`fixed inset-y-0 right-0 z-50 w-80 bg-white shadow-xl transform transition-transform duration-300 ease-in-out ${
+          showCart ? 'translate-x-0' : 'translate-x-full'
+        }`}
+      >
+        <div className="flex flex-col h-full">
+          {/* Cabecera del carrito */}
+          <div className="flex items-center justify-between px-4 py-4 border-b">
+            <h2 className="text-xl font-semibold text-gray-800">Tu Carrito</h2>
+            <button 
+              onClick={() => setShowCart(false)} 
+              className="p-2 rounded-full hover:bg-gray-100"
+              aria-label="Cerrar carrito"
+            >
+              <X className="w-5 h-5 text-gray-500 hover:text-black" />
+            </button>
+          </div>
+          
+          {/* Contenido del carrito */}
+          <div className="flex-1 overflow-y-auto">
+            {items.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-full p-4 text-center">
+                <ShoppingCart className="w-16 h-16 text-gray-300 mb-4" />
+                <p className="text-gray-500">Tu carrito está vacío</p>
+                <p className="text-gray-400 text-sm mt-2">Agrega productos desde la tienda</p>
+                <Button 
+                  className="mt-6 bg-brand-500 hover:bg-brand-600"
+                  onClick={() => {
+                    setShowCart(false);
+                    // Si estás en una página de producto, puedes navegar a la tienda
+                  }}
+                >
+                  Ver productos
+                </Button>
+              </div>
+            ) : (
+              <ul className="divide-y">
+                {items.map((item: import("@/components/cart-context").CartItem) => (
+                  <li key={item.id + (item.size || "")} className="flex items-center gap-3 px-4 py-4 hover:bg-gray-50">
+                    <img src={item.image} alt={item.title} className="w-16 h-16 rounded object-cover border" />
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium text-sm">{item.title}</div>
+                      <div className="text-sm text-gray-500">Talla: {item.size}</div>
+                      <div className="flex items-center justify-between mt-1">
+                        <div className="text-sm text-brand-600 font-semibold">S/. {item.price.toFixed(2)}</div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm text-gray-500">Cant: {item.quantity}</span>
+                          <button
+                            className="p-1 text-gray-400 hover:text-red-600 rounded-full hover:bg-gray-100"
+                            onClick={() => {
+                              removeFromCart(item.id, item.size);
+                              toast({ title: "Producto eliminado", description: item.title });
+                            }}
+                            aria-label="Eliminar del carrito"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+          
+          {/* Footer del carrito con total y botón de checkout */}
+          {items.length > 0 && (
+            <div className="border-t py-4 px-4 bg-gray-50">
+              <div className="flex justify-between items-center mb-4">
+                <span className="text-gray-600">Subtotal</span>
+                <span className="text-lg font-semibold">
+                  S/. {items.reduce((sum: number, item: import("@/components/cart-context").CartItem) => 
+                    sum + item.price * item.quantity, 0).toFixed(2)}
+                </span>
+              </div>
+              <Button size="lg" className="w-full bg-brand-500 hover:bg-brand-600 text-white">
+                Finalizar compra
+              </Button>
+              <button 
+                className="w-full mt-2 text-center text-sm text-gray-500 hover:text-gray-700"
+                onClick={() => setShowCart(false)}
+              >
+                Seguir comprando
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+      
+      {/* Overlay para cerrar el carrito al hacer clic fuera */}
+      {showCart && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 z-40"
+          onClick={() => setShowCart(false)}
+        />
+      )}
     </>
   )
 }

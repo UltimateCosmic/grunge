@@ -48,8 +48,13 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         i => i.id === item.id && i.size === item.size
       );
       if (idx !== -1) {
+        // Creamos una copia para no modificar el estado directamente
         const updated = [...prev];
-        updated[idx].quantity += item.quantity;
+        // Sumamos exactamente la cantidad que viene en el item nuevo (sin acumular)
+        updated[idx] = {
+          ...updated[idx],
+          quantity: updated[idx].quantity + item.quantity
+        };
         return updated;
       }
       return [...prev, item];

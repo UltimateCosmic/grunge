@@ -11,7 +11,7 @@ interface ProductMatch {
   url: string
 }
 
-export default function Searchbar({ onClose }: { onClose?: () => void }) {
+export default function Searchbar({ onClose, autoFocus }: { onClose?: () => void, autoFocus?: boolean }) {
   const [query, setQuery] = useState("")
   const [results, setResults] = useState<ProductMatch[]>([])
   const [isLoading, setIsLoading] = useState(false)
@@ -22,7 +22,7 @@ export default function Searchbar({ onClose }: { onClose?: () => void }) {
 
   // Cierre automático al hacer click fuera
   useEffect(() => {
-    if (!showDropdown) return;
+    if (!autoFocus) return;
     function handleClickOutside(event: MouseEvent) {
       if (rootRef.current && !rootRef.current.contains(event.target as Node)) {
         setShowDropdown(false);
@@ -32,7 +32,7 @@ export default function Searchbar({ onClose }: { onClose?: () => void }) {
     }
     document.addEventListener("mousedown", handleClickOutside)
     return () => document.removeEventListener("mousedown", handleClickOutside)
-  }, [showDropdown, onClose])
+  }, [autoFocus, onClose])
 
   useEffect(() => {
     if (query.length < 2) {
@@ -57,6 +57,13 @@ export default function Searchbar({ onClose }: { onClose?: () => void }) {
     if (onClose) onClose()
     router.push(url)
   }
+
+  // Foco automático al abrir el searchbar
+  useEffect(() => {
+    if (autoFocus && inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [autoFocus])
 
   return (
     <div className="relative w-full max-w-xs" ref={rootRef}>
