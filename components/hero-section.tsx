@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { ChevronLeft, ChevronRight, Calendar, MapPin, Ticket } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { upcomingConcerts } from "@/data/upcoming-concerts"
+import OptimizedLogo from "@/components/ui/optimized-logo"
 
 export default function HeroSection() {
   const [currentSlide, setCurrentSlide] = useState(0)
@@ -99,15 +100,16 @@ export default function HeroSection() {
         <div className="text-white space-y-6">
           <div className="space-y-2">
             <div className="mb-4">
-              <Image
+              <OptimizedLogo
                 src={concert.logo || "/placeholder.svg"}
                 alt={`${concert.band} logo`}
-                width={300}
-                height={120}
+                width={400}
+                height={160}
                 className="h-20 md:h-24 w-auto object-contain transition-transform duration-100 ease-out"
                 style={{
                   transform: `translateX(${scrollY * -0.3}px)`,
                 }}
+                priority={true}
               />
             </div>
             <div className="flex flex-col md:flex-row md:items-center space-y-2 md:space-y-0 md:space-x-4 text-lg text-white">

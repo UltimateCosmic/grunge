@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation"
 import { upcomingConcerts } from "@/data/upcoming-concerts"
 import ProductCard from "@/components/product-card"
 import { mapProduct } from "@/lib/map-product"
+import OptimizedLogo from "@/components/ui/optimized-logo"
 
 interface SpotifyTrack {
   name: string
@@ -176,12 +177,13 @@ export default function ConcertosPage() {
                   <div className="absolute inset-0 bg-black/60" />
 
                   <div className="relative z-10 text-center space-y-6">
-                    <Image
+                    <OptimizedLogo
                       src={concert.logo || "/placeholder.svg"}
                       alt={`${concert.band} logo`}
                       width={400}
                       height={160}
                       className="h-28 md:h-32 w-auto object-contain mx-auto"
+                      priority={index === 0} // Solo el primer concierto es prioritario
                     />
 
                     <div className="space-y-4">
