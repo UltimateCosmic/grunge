@@ -52,6 +52,8 @@ export default function ProductPageClient() {
   const [zoomActive, setZoomActive] = useState(false);
   const [zoomPos, setZoomPos] = useState({ x: 0, y: 0 });
   const [shareOpen, setShareOpen] = useState(false);
+  const [sizeError, setSizeError] = useState<string>("");
+  const [sizeTouched, setSizeTouched] = useState(false); // Nuevo estado para controlar si la talla fue tocada
   const inputRef = useRef<HTMLInputElement>(null);
   const ZOOM_SIZE = 180; // diámetro del círculo de zoom
   const ZOOM_SCALE = 2.2; // nivel de zoom
@@ -72,17 +74,8 @@ export default function ProductPageClient() {
 
       if (data.product) {
         setProduct(data.product)
-        // Seleccionar la primera variante disponible por defecto
-        if (data.product.variants?.length > 0) {
-          const firstAvailable = data.product.variants.find((v: ProductVariant) => v.availability)
-          if (firstAvailable) {
-            setSelectedVariant(firstAvailable)
-            setSelectedSize(firstAvailable.size)
-          }
-        } else if (data.product.sizes?.length > 0) {
-          // Si no hay variantes pero hay tallas, usar la primera talla
-          setSelectedSize(data.product.sizes[0])
-        }
+        setSelectedSize("")
+        setSelectedVariant(null)
       }
     } catch (error) {
       console.error('Error fetching product:', error)
@@ -101,6 +94,9 @@ export default function ProductPageClient() {
       setSelectedSize(size)
       setSelectedVariant(null)
     }
+    // Limpiar error de talla cuando se selecciona una
+    setSizeError("")
+    setSizeTouched(true); // Marcar como tocada al seleccionar una talla
   }
 
   // Función para formatear precio en soles (idéntica a ProductCard)
@@ -266,8 +262,8 @@ export default function ProductPageClient() {
               <Separator />
 
               {/* Selección de talla */}
-              {product.sizes && product.sizes.length > 0 && (
-                <div>
+              {product.sizes && product.sizes.length > 0 && !(product.sizes.length === 1 && product.sizes[0] === "Única") && (
+                <div id="size-selector">
                   <div className="flex items-center gap-2 mb-3">
                     <h3 className="text-lg font-semibold text-gray-900">Talla</h3>
                     <Dialog>
@@ -276,45 +272,182 @@ export default function ProductPageClient() {
                           Guía de tallas
                         </button>
                       </DialogTrigger>
-                      <DialogContent className="sm:max-w-md">
+                      <DialogContent className="sm:max-w-2xl max-h-[80vh] overflow-y-auto">
                         <DialogHeader>
                           <DialogTitle>Guía de tallas</DialogTitle>
                         </DialogHeader>
-                        <div className="grid gap-4 py-4">
-                          <div className="overflow-x-auto">
-                            <table className="min-w-full bg-white border border-gray-200 text-sm">
+                        <div className="grid gap-6 py-4 text-xs text-gray-800">
+                          {/* T-shirts/Sweatshirts */}
+                          <div>
+                            <h4 className="font-semibold mb-2">T-shirts/Sweatshirts (pulgadas)</h4>
+                            <table className="min-w-full bg-white border border-gray-200 text-xs mb-2">
                               <thead className="bg-gray-100">
                                 <tr>
-                                  <th className="border-b border-gray-200 px-4 py-2 text-left">Talla</th>
-                                  <th className="border-b border-gray-200 px-4 py-2 text-left">Pecho (cm)</th>
-                                  <th className="border-b border-gray-200 px-4 py-2 text-left">Largo (cm)</th>
+                                  <th className="border-b border-gray-200 px-2 py-1 text-left">Talla</th>
+                                  <th className="border-b border-gray-200 px-2 py-1 text-left">Ancho (in)</th>
+                                  <th className="border-b border-gray-200 px-2 py-1 text-left">Largo (in)</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                <tr><td className="px-2 py-1">Small</td><td className="px-2 py-1">34-36</td><td className="px-2 py-1">27</td></tr>
+                                <tr><td className="px-2 py-1">Medium</td><td className="px-2 py-1">38-40</td><td className="px-2 py-1">28 1/2</td></tr>
+                                <tr><td className="px-2 py-1">Large</td><td className="px-2 py-1">42-44</td><td className="px-2 py-1">29 1/2</td></tr>
+                                <tr><td className="px-2 py-1">X-Large</td><td className="px-2 py-1">46-48</td><td className="px-2 py-1">31</td></tr>
+                                <tr><td className="px-2 py-1">XX-Large</td><td className="px-2 py-1">50-52</td><td className="px-2 py-1">32</td></tr>
+                                <tr><td className="px-2 py-1">XXX-Large</td><td className="px-2 py-1">54-56</td><td className="px-2 py-1">33 1/2</td></tr>
+                                <tr><td className="px-2 py-1">XXXX-Large</td><td className="px-2 py-1">58-60</td><td className="px-2 py-1">34 1/2</td></tr>
+                              </tbody>
+                            </table>
+                            <div className="text-gray-500 italic text-xs">*Todas las medidas son aproximadas</div>
+                          </div>
+                          {/* Baseball/Flex Fit Caps */}
+                          <div>
+                            <h4 className="font-semibold mb-2">Baseball/Flex Fit Caps (pulgadas)</h4>
+                            <table className="min-w-full bg-white border border-gray-200 text-xs mb-2">
+                              <thead className="bg-gray-100">
+                                <tr>
+                                  <th className="border-b border-gray-200 px-2 py-1 text-left">Talla</th>
+                                  <th className="border-b border-gray-200 px-2 py-1 text-left">Medida</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                <tr><td className="px-2 py-1">Small/Medium</td><td className="px-2 py-1">6 3/4 - 7 1/4</td></tr>
+                                <tr><td className="px-2 py-1">Large/X-Large</td><td className="px-2 py-1">7 1/8 - 7 5/8</td></tr>
+                              </tbody>
+                            </table>
+                            <div className="text-gray-500 italic text-xs">*Todas las medidas son aproximadas</div>
+                          </div>
+                          {/* Girls Junior Tees */}
+                          <div>
+                            <h4 className="font-semibold mb-2">Girls Junior Tees</h4>
+                            <table className="min-w-full bg-white border border-gray-200 text-xs mb-2">
+                              <thead className="bg-gray-100">
+                                <tr>
+                                  <th className="border-b border-gray-200 px-2 py-1 text-left">Nuestra talla</th>
+                                  <th className="border-b border-gray-200 px-2 py-1 text-left">Talla Junior</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                <tr><td className="px-2 py-1">Small</td><td className="px-2 py-1">3/4</td></tr>
+                                <tr><td className="px-2 py-1">Medium</td><td className="px-2 py-1">5/6</td></tr>
+                                <tr><td className="px-2 py-1">Large</td><td className="px-2 py-1">7/8</td></tr>
+                                <tr><td className="px-2 py-1">X-Large</td><td className="px-2 py-1">9/10</td></tr>
+                              </tbody>
+                            </table>
+                            <div className="text-gray-500 italic text-xs">*Todas las medidas son aproximadas</div>
+                          </div>
+                          {/* Youth Sizes */}
+                          <div>
+                            <h4 className="font-semibold mb-2">Youth Sizes</h4>
+                            <table className="min-w-full bg-white border border-gray-200 text-xs mb-2">
+                              <thead className="bg-gray-100">
+                                <tr>
+                                  <th className="border-b border-gray-200 px-2 py-1 text-left">Nuestra talla</th>
+                                  <th className="border-b border-gray-200 px-2 py-1 text-left">Talla Youth</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                <tr><td className="px-2 py-1">Small</td><td className="px-2 py-1">6-8</td></tr>
+                                <tr><td className="px-2 py-1">Medium</td><td className="px-2 py-1">10-12</td></tr>
+                                <tr><td className="px-2 py-1">Large</td><td className="px-2 py-1">14-16</td></tr>
+                                <tr><td className="px-2 py-1">X-Large</td><td className="px-2 py-1">18-20</td></tr>
+                              </tbody>
+                            </table>
+                            <div className="text-gray-500 italic text-xs">*Todas las medidas son aproximadas</div>
+                          </div>
+                          {/* Baby Dolls/Fitted & Raglan Tees/Tanks */}
+                          <div>
+                            <h4 className="font-semibold mb-2">Baby Dolls/Fitted & Raglan Tees/Tanks (pulgadas)</h4>
+                            <table className="min-w-full bg-white border border-gray-200 text-xs mb-2">
+                              <thead className="bg-gray-100">
+                                <tr>
+                                  <th className="border-b border-gray-200 px-2 py-1 text-left">Talla</th>
+                                  <th className="border-b border-gray-200 px-2 py-1 text-left">Busto</th>
+                                  <th className="border-b border-gray-200 px-2 py-1 text-left">Cintura</th>
+                                  <th className="border-b border-gray-200 px-2 py-1 text-left">Largo</th>
+                                  <th className="border-b border-gray-200 px-2 py-1 text-left">Talla Vestido</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                <tr><td className="px-2 py-1">Small</td><td className="px-2 py-1">28</td><td className="px-2 py-1">26</td><td className="px-2 py-1">22 1/8</td><td className="px-2 py-1">0-2</td></tr>
+                                <tr><td className="px-2 py-1">Medium</td><td className="px-2 py-1">30</td><td className="px-2 py-1">28</td><td className="px-2 py-1">22 3/4</td><td className="px-2 py-1">4-6</td></tr>
+                                <tr><td className="px-2 py-1">Large</td><td className="px-2 py-1">33</td><td className="px-2 py-1">31</td><td className="px-2 py-1">23 3/8</td><td className="px-2 py-1">8-10</td></tr>
+                                <tr><td className="px-2 py-1">X-Large</td><td className="px-2 py-1">35</td><td className="px-2 py-1">33</td><td className="px-2 py-1">24</td><td className="px-2 py-1">12</td></tr>
+                              </tbody>
+                            </table>
+                            <div className="text-gray-500 italic text-xs">*Todas las medidas son aproximadas</div>
+                          </div>
+                          {/* Shoe Size Conversion Chart (Mens 3.5-7.5) */}
+                          <div>
+                            <h4 className="font-semibold mb-2">Conversión de tallas de calzado (Hombres 3.5-7.5)</h4>
+                            <table className="min-w-full bg-white border border-gray-200 text-xs mb-2">
+                              <thead className="bg-gray-100">
+                                <tr>
+                                  <th className="border-b border-gray-200 px-2 py-1 text-left">USA Mens</th>
+                                  <th className="border-b border-gray-200 px-2 py-1">4</th>
+                                  <th className="border-b border-gray-200 px-2 py-1">4.5</th>
+                                  <th className="border-b border-gray-200 px-2 py-1">5</th>
+                                  <th className="border-b border-gray-200 px-2 py-1">5.5</th>
+                                  <th className="border-b border-gray-200 px-2 py-1">6</th>
+                                  <th className="border-b border-gray-200 px-2 py-1">6.5</th>
+                                  <th className="border-b border-gray-200 px-2 py-1">7</th>
+                                  <th className="border-b border-gray-200 px-2 py-1">7.5</th>
                                 </tr>
                               </thead>
                               <tbody>
                                 <tr>
-                                  <td className="border-b border-gray-200 px-4 py-2">S</td>
-                                  <td className="border-b border-gray-200 px-4 py-2">51</td>
-                                  <td className="border-b border-gray-200 px-4 py-2">69</td>
+                                  <td className="px-2 py-1 font-semibold">USA Womens</td>
+                                  <td className="px-2 py-1">5</td><td className="px-2 py-1">5.5</td><td className="px-2 py-1">6</td><td className="px-2 py-1">6.5</td><td className="px-2 py-1">7</td><td className="px-2 py-1">7.5</td><td className="px-2 py-1">8</td><td className="px-2 py-1">8.5</td>
                                 </tr>
                                 <tr>
-                                  <td className="border-b border-gray-200 px-4 py-2">M</td>
-                                  <td className="border-b border-gray-200 px-4 py-2">53</td>
-                                  <td className="border-b border-gray-200 px-4 py-2">71</td>
+                                  <td className="px-2 py-1 font-semibold">Europe</td>
+                                  <td className="px-2 py-1">-</td><td className="px-2 py-1">36</td><td className="px-2 py-1">-</td><td className="px-2 py-1">37</td><td className="px-2 py-1">38</td><td className="px-2 py-1">-</td><td className="px-2 py-1">39</td><td className="px-2 py-1">40</td>
                                 </tr>
                                 <tr>
-                                  <td className="border-b border-gray-200 px-4 py-2">L</td>
-                                  <td className="border-b border-gray-200 px-4 py-2">56</td>
-                                  <td className="border-b border-gray-200 px-4 py-2">73</td>
+                                  <td className="px-2 py-1 font-semibold">U.K.</td>
+                                  <td className="px-2 py-1">2.5</td><td className="px-2 py-1">3</td><td className="px-2 py-1">3.5</td><td className="px-2 py-1">4</td><td className="px-2 py-1">4.5</td><td className="px-2 py-1">5</td><td className="px-2 py-1">5.5</td><td className="px-2 py-1">6</td><td className="px-2 py-1">6.5</td>
                                 </tr>
                                 <tr>
-                                  <td className="border-b border-gray-200 px-4 py-2">XL</td>
-                                  <td className="border-b border-gray-200 px-4 py-2">61</td>
-                                  <td className="border-b border-gray-200 px-4 py-2">76</td>
+                                  <td className="px-2 py-1 font-semibold">Japan</td>
+                                  <td className="px-2 py-1">-</td><td className="px-2 py-1">220</td><td className="px-2 py-1">-</td><td className="px-2 py-1">230</td><td className="px-2 py-1">235</td><td className="px-2 py-1">-</td><td className="px-2 py-1">245</td><td className="px-2 py-1">250</td>
+                                </tr>
+                              </tbody>
+                            </table>
+                          </div>
+                          {/* Shoe Size Conversion Chart (Mens 8-12) */}
+                          <div>
+                            <h4 className="font-semibold mb-2">Conversión de tallas de calzado (Hombres 8-12)</h4>
+                            <table className="min-w-full bg-white border border-gray-200 text-xs mb-2">
+                              <thead className="bg-gray-100">
+                                <tr>
+                                  <th className="border-b border-gray-200 px-2 py-1 text-left">USA Mens</th>
+                                  <th className="border-b border-gray-200 px-2 py-1">8</th>
+                                  <th className="border-b border-gray-200 px-2 py-1">8.5</th>
+                                  <th className="border-b border-gray-200 px-2 py-1">9</th>
+                                  <th className="border-b border-gray-200 px-2 py-1">9.5</th>
+                                  <th className="border-b border-gray-200 px-2 py-1">10</th>
+                                  <th className="border-b border-gray-200 px-2 py-1">10.5</th>
+                                  <th className="border-b border-gray-200 px-2 py-1">11</th>
+                                  <th className="border-b border-gray-200 px-2 py-1">11.5</th>
+                                  <th className="border-b border-gray-200 px-2 py-1">12</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                <tr>
+                                  <td className="px-2 py-1 font-semibold">USA Womens</td>
+                                  <td className="px-2 py-1">9.5</td><td className="px-2 py-1">10</td><td className="px-2 py-1">10.5</td><td className="px-2 py-1">11</td><td className="px-2 py-1">11.5</td><td className="px-2 py-1">12</td><td className="px-2 py-1">12.5</td><td className="px-2 py-1">13</td><td className="px-2 py-1">13.5</td>
                                 </tr>
                                 <tr>
-                                  <td className="px-4 py-2">XXL</td>
-                                  <td className="px-4 py-2">66</td>
-                                  <td className="px-4 py-2">78</td>
+                                  <td className="px-2 py-1 font-semibold">Europe</td>
+                                  <td className="px-2 py-1">41</td><td className="px-2 py-1">42</td><td className="px-2 py-1">-</td><td className="px-2 py-1">43</td><td className="px-2 py-1">44</td><td className="px-2 py-1">-</td><td className="px-2 py-1">45</td><td className="px-2 py-1">46</td><td className="px-2 py-1">-</td>
+                                </tr>
+                                <tr>
+                                  <td className="px-2 py-1 font-semibold">U.K.</td>
+                                  <td className="px-2 py-1">7</td><td className="px-2 py-1">7.5</td><td className="px-2 py-1">8</td><td className="px-2 py-1">8.5</td><td className="px-2 py-1">9</td><td className="px-2 py-1">9.5</td><td className="px-2 py-1">10</td><td className="px-2 py-1">10.5</td><td className="px-2 py-1">11</td>
+                                </tr>
+                                <tr>
+                                  <td className="px-2 py-1 font-semibold">Japan</td>
+                                  <td className="px-2 py-1">260</td><td className="px-2 py-1">265</td><td className="px-2 py-1">-</td><td className="px-2 py-1">275</td><td className="px-2 py-1">280</td><td className="px-2 py-1">-</td><td className="px-2 py-1">290</td><td className="px-2 py-1">-</td><td className="px-2 py-1">-</td>
                                 </tr>
                               </tbody>
                             </table>
@@ -323,26 +456,37 @@ export default function ProductPageClient() {
                       </DialogContent>
                     </Dialog>
                   </div>
-                  {selectedSize && (
-                    <p className="text-sm text-gray-600 mb-3">Seleccionado: {selectedSize}</p>
+                  {selectedSize && sizeTouched && (
+                    <div className="text-sm text-gray-600 mb-3">
+                      <span>Seleccionado: {selectedSize}</span>
+                    </div>
                   )}
                   <div className="grid grid-cols-4 gap-2">
-                    {product.sizes.map((size: string) => (
-                      <button
-                        key={size}
-                        onClick={() => handleSizeSelect(size)}
-                        className={`border rounded-md py-2 transition-colors ${selectedSize === size
-                          ? 'border-brand-500 bg-brand-50 text-brand-700'
-                          : 'border-gray-300 hover:border-gray-400 text-gray-700'
-                          }`}
-                        disabled={
-                          product.variants?.length > 0 &&
-                          !product.variants.some(v => v.size === size && v.availability)
-                        }
-                      >
-                        {size}
-                      </button>
-                    ))}
+                    {product.sizes.map((size: string) => {
+                      const sizeVariant = product.variants?.find(v => v.size === size);
+                      const isUnavailable = product.variants?.length > 0 && sizeVariant && !sizeVariant.availability;
+
+                      return (
+                        <button
+                          key={size}
+                          onClick={() => handleSizeSelect(size)}
+                          className={`border rounded-md py-2 transition-colors relative font-medium ${selectedSize === size
+                              ? 'bg-brand-500 text-white border-brand-500 hover:bg-brand-600 hover:border-brand-600'
+                              : isUnavailable
+                                ? 'border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed'
+                                : 'border-gray-300 hover:border-gray-400 text-gray-700 hover:bg-gray-50'
+                            }`}
+                          disabled={isUnavailable}
+                        >
+                          {size}
+                          {isUnavailable && (
+                            <div className="absolute inset-0 flex items-center justify-center">
+                              <div className="w-full h-0.5 bg-gray-400 rotate-45 absolute"></div>
+                            </div>
+                          )}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
               )}
@@ -350,17 +494,19 @@ export default function ProductPageClient() {
               {/* Cantidad */}
               <div>
                 <h3 className="text-lg font-semibold text-gray-900 mb-3">Cantidad</h3>
-                <div className="flex items-center border border-gray-300 rounded-lg w-32">
+                <div className="flex w-32 rounded-lg overflow-hidden border border-gray-300">
                   <button
                     onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                    className="px-3 py-2 hover:bg-gray-100 transition-colors"
+                    className="px-3 py-2 bg-white border-r border-gray-300 hover:bg-gray-100 transition-colors focus:z-10"
+                    style={{ zIndex: 1 }}
                   >
                     -
                   </button>
-                  <span className="flex-1 text-center py-2 font-medium">{quantity}</span>
+                  <span className="flex-1 text-center py-2 font-medium bg-white select-none">{quantity}</span>
                   <button
                     onClick={() => setQuantity(quantity + 1)}
-                    className="px-3 py-2 hover:bg-gray-100 transition-colors"
+                    className="px-3 py-2 bg-white border-l border-gray-300 hover:bg-gray-100 transition-colors focus:z-10"
+                    style={{ zIndex: 1 }}
                   >
                     +
                   </button>
@@ -377,17 +523,46 @@ export default function ProductPageClient() {
 
               {/* Botones de acción */}
               <div className="space-y-3">
+                {/* Mensaje de error para talla */}
+                {sizeError && (
+                  <div className="bg-red-50 border-l-4 border-red-400 rounded-lg p-4 animate-pulse">
+                    <p className="text-red-700 text-sm font-medium flex items-center gap-2">
+                      {sizeError}
+                    </p>
+                  </div>
+                )}
+
                 <Button
                   size="lg"
                   className="w-full bg-brand-500 hover:bg-brand-600 text-white"
-                  disabled={!product.availability || (product.sizes?.length > 0 && !selectedSize)}
+                  disabled={!product.availability}
                   onClick={() => {
                     if (!product) return;
+
+                    // Verificar si el producto tiene tallas y no se ha seleccionado ninguna
+                    if (product.sizes?.length > 0 && !selectedSize) {
+                      setSizeError("⚠️ Por favor selecciona una talla antes de añadir al carrito");
+                      // Hacer scroll hacia el selector de tallas para que el usuario lo vea
+                      document.getElementById('size-selector')?.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'center'
+                      });
+                      return;
+                    }
+
+                    // Verificar si la talla seleccionada no tiene stock (solo si hay variantes)
+                    if (selectedSize && product.variants?.length > 0) {
+                      const variant = product.variants.find(v => v.size === selectedSize);
+                      if (variant && !variant.availability) {
+                        setSizeError("❌ Esta talla no está disponible en este momento. Por favor selecciona otra talla.");
+                        return;
+                      }
+                    }
 
                     // Caso 1: Producto con variantes y talla seleccionada
                     if (selectedSize && product.variants?.length > 0) {
                       const variant = selectedVariant || (product.variants.find(v => v.size === selectedSize) ?? null);
-                      if (variant) {
+                      if (variant && variant.availability) {
                         addToCart({
                           id: product.id,
                           title: product.title,
@@ -406,7 +581,7 @@ export default function ProductPageClient() {
                       }
                     }
 
-                    // Caso 2: Producto con tallas pero sin variantes
+                    // Caso 2: Producto con tallas pero sin variantes o variante no disponible
                     if (selectedSize && product.sizes?.length > 0) {
                       addToCart({
                         id: product.id,
@@ -457,7 +632,6 @@ export default function ProductPageClient() {
                       type="button"
                       size="lg"
                       className="w-full bg-black text-white flex items-center justify-center gap-2 hover:scale-105 hover:shadow-lg hover:bg-gray-900 transition-transform transition-shadow duration-200"
-                      disabled={!product.availability || (product.sizes?.length > 0 && !selectedSize)}
                     >
                       Comprar en
                       <Image src="/rockabilia.avif" alt="Rockabilia" width={70} height={24} className="h-6 w-auto object-contain" />

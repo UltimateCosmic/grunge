@@ -2,9 +2,10 @@ import { Metadata } from "next";
 import ProductPageClient from "./page-client";
 
 // Función para generar metadatos dinámicos
-export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/product-enhanced/${params.slug}`);
+    const { slug } = await params;
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/product-enhanced/${slug}`);
     if (!response.ok) {
       return {
         title: "Producto no encontrado | Grunge",

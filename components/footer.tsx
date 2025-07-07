@@ -88,7 +88,10 @@ export default function Footer() {
 
         {/* Bottom bar */}
         <div className="border-t border-gray-800 mt-8 pt-8 flex flex-col md:flex-row justify-between items-center">
-          <p className="text-gray-400 text-sm">© 2025 Grunge. Todos los derechos reservados.</p>
+            <p className="text-gray-400 text-sm">
+            © 2025 Grunge. Todos los derechos reservados. <br />
+            Creado por Johan Amador <a href="https://cosmodev.me" target="_blank" rel="noopener noreferrer" className="underline hover:text-white">@cosmodev</a>
+            </p>
           <div className="flex space-x-6 mt-4 md:mt-0">
             <Link href="/privacidad" className="text-gray-400 hover:text-white transition-colors text-sm">
               Política de Privacidad

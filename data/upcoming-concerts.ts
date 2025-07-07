@@ -70,7 +70,7 @@ export const upcomingConcerts: Concert[] = [
     merchPreview: "/placeholder.svg?height=400&width=600",
     color: "#ec0981",
     ticketProvider: "Ticketmaster",
-    ticketUrl: "https://www.ticketmaster.pe/event-green-day-estadio-san-marcos-2025",
+    ticketUrl: "https://www.ticketmaster.pe/event/green-day-estadio-san-marcos-2025",
     message: "Green Day llega a Lima con su tour épico. ¡No te quedes sin tu merch oficial!",
     spotifyId: "7oPftvlwr6VrsViSDV7fJY",
     shirts: [

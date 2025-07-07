@@ -160,16 +160,13 @@ export default function ConcertosPage() {
           {upcomingConcerts.map((concert, index) => (
             <div key={concert.id} className="relative">
               {/* Concert Card */}
-              <div className="bg-white rounded-3xl shadow-2xl overflow-hidden">
+              <div className="rounded-3xl shadow-2xl overflow-hidden">
                 {/* Concert Header */}
                 <div
                   className="relative h-80 md:h-96 flex items-center justify-center text-white"
-                  style={{
-                    background: `linear-gradient(135deg, ${concert.color}22 0%, ${concert.color}44 100%)`,
-                  }}
                 >
                   <div
-                    className="absolute inset-0 opacity-30"
+                    className="absolute inset-0 opacity-100"
                     style={{
                       backgroundImage: `url(${concert.image})`,
                       backgroundSize: 'cover',
@@ -217,12 +214,24 @@ export default function ConcertosPage() {
                           <Button
                             variant="outline"
                             size="lg"
-                            className="border-white text-white hover:bg-white hover:text-black bg-transparent"
+                            className="border-white text-white hover:bg-white hover:text-black bg-transparent group"
                             asChild
                           >
-                            <a href={concert.ticketUrl} target="_blank" rel="noopener noreferrer">
-                              <Ticket className="w-5 h-5 mr-2" />
-                              Comprar en {concert.ticketProvider}
+                            <a
+                              href={concert.ticketUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center gap-2"
+                            >
+                              <Ticket className="w-5 h-5" />
+                              Comprar en
+                              <Image
+                                src={`/ticket-provider/${concert.ticketProvider.toLowerCase()}.png`}
+                                alt={concert.ticketProvider}
+                                width={60}
+                                height={13}
+                                className="inline-block align-middle h-4 w-auto object-contain transition-all duration-200 filter brightness-0 invert group-hover:filter-none group-hover:brightness-100 group-hover:invert-0"
+                              />
                             </a>
                           </Button>
                         )}
@@ -231,88 +240,25 @@ export default function ConcertosPage() {
                   </div>
                 </div>
 
-                <div className="p-8 md:p-12">
+                <div className="bg-white p-8 md:p-12">
                   <div className="grid md:grid-cols-2 gap-12">
                     {/* Popular Songs */}
-                    <div className="space-y-6">
-                      <div className="flex items-center space-x-3">
-                        <Music className="h-6 w-6" style={{ color: concert.color }} />
-                        <h3 className="text-2xl font-bold text-gray-900">
-                          Canciones Populares
-                        </h3>
+                    {concert.spotifyId ? (
+                      <div className="w-full flex flex-col items-center">
+                        <iframe
+                          src={`https://open.spotify.com/embed/artist/${concert.spotifyId}?utm_source=generator&theme=0`}
+                          width="100%"
+                          height="380"
+                          frameBorder="0"
+                          allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+                          loading="lazy"
+                          className="rounded-xl shadow-lg border border-gray-200"
+                          title={`Spotify Player - ${concert.band}`}
+                        ></iframe>
                       </div>
-
-                      {tracks[concert.id] ? (
-                        <div className="space-y-3">
-                          {tracks[concert.id].map((track, trackIndex) => (
-                            <div
-                              key={trackIndex}
-                              className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
-                            >
-                              <div className="flex items-center space-x-3">
-                                <button
-                                  onClick={() => handlePlayTrack(concert.id, trackIndex)}
-                                  className="p-2 rounded-full hover:bg-white transition-colors"
-                                  style={{ color: concert.color }}
-                                >
-                                  {playingTrack?.concertId === concert.id && playingTrack?.trackIndex === trackIndex ? (
-                                    <Pause className="h-5 w-5" />
-                                  ) : (
-                                    <Play className="h-5 w-5" />
-                                  )}
-                                </button>
-                                <div>
-                                  <p className="font-medium text-gray-900">{track.name}</p>
-                                  <p className="text-sm text-gray-500">{concert.band}</p>
-                                </div>
-                              </div>
-                              <div className="flex items-center space-x-3">
-                                <span className="text-sm text-gray-500">
-                                  {formatDuration(track.duration_ms)}
-                                </span>
-                                <a
-                                  href={track.external_urls.spotify}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="p-1 text-gray-400 hover:text-green-500 transition-colors"
-                                >
-                                  <ExternalLink className="h-4 w-4" />
-                                </a>
-                              </div>
-                            </div>
-                          ))}
-
-                          <a
-                            href={`https://open.spotify.com/artist/${concert.spotifyId}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center space-x-2 text-green-600 hover:text-green-700 font-medium"
-                          >
-                            <Image
-                              src="/spotify-logo.svg"
-                              alt="Spotify"
-                              width={20}
-                              height={20}
-                              className="h-5 w-5 text-green-600"
-                            />
-                            <span>Escuchar en Spotify</span>
-                            <ExternalLink className="h-4 w-4" />
-                          </a>
-                        </div>
-                      ) : (
-                        <div className="space-y-3">
-                          {[1, 2, 3].map((i) => (
-                            <div key={i} className="flex items-center space-x-3 p-4 bg-gray-50 rounded-lg">
-                              <div className="w-10 h-10 bg-gray-200 rounded-full animate-pulse" />
-                              <div className="flex-1 space-y-2">
-                                <div className="h-4 bg-gray-200 rounded animate-pulse w-3/4" />
-                                <div className="h-3 bg-gray-200 rounded animate-pulse w-1/2" />
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
+                    ) : (
+                      <div className="text-gray-500">No hay canciones disponibles para este artista.</div>
+                    )}
 
                     {/* Concert Info */}
                     <div className="space-y-6">

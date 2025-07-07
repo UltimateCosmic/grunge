@@ -8,10 +8,11 @@ import Searchbar from "@/components/searchbar"
 import { useCart } from "@/components/cart-context";
 import { useToast } from "@/hooks/use-toast";
 
-// Declaración de tipos para jsmediatags
+// Declaración de tipos para jsmediatags y función global para pausar el header
 declare global {
   interface Window {
     jsmediatags: any;
+    __pauseHeaderPlayer?: () => void;
   }
 }
 
@@ -54,11 +55,20 @@ export default function Header() {
   const [showSearch, setShowSearch] = useState(false)
   const [showCart, setShowCart] = useState(false);
   const [hasUserInteracted, setHasUserInteracted] = useState(false)
-  const [autoplayAttempted, setAutoplayAttempted] = useState(false)
   const audioRef = useRef<HTMLAudioElement>(null)
   const { items, removeFromCart, getCount } = useCart();
   const { toast } = useToast();
   const totalItems = getCount();
+
+  // Pausar iframes de Spotify al reproducir en el header
+  const pauseSpotifyIframes = () => {
+    const iframes = document.querySelectorAll('iframe[src*="open.spotify.com/embed/artist"]');
+    iframes.forEach((iframe) => {
+      // Forzar reload del src para pausar el reproductor de Spotify
+      const src = iframe.getAttribute('src');
+      if (src) iframe.setAttribute('src', src);
+    });
+  };
 
   // Funciones de control del reproductor
   const togglePlay = () => {
@@ -73,11 +83,11 @@ export default function Header() {
       audioRef.current.pause()
       setIsPlaying(false)
     } else {
+      pauseSpotifyIframes(); // Pausar iframes de Spotify
       audioRef.current.play().then(() => {
         setIsPlaying(true)
       }).catch((error) => {
         console.log('Error al reproducir:', error)
-        // Si hay error, mantener el estado como no reproduciendo
         setIsPlaying(false)
       })
     }
@@ -279,26 +289,6 @@ export default function Header() {
     return () => clearTimeout(timer)
   }, [currentSong])
 
-  // Effect para detectar primera interacción del usuario e intentar autoplay
-  useEffect(() => {
-    if (hasUserInteracted && !autoplayAttempted) {
-      setAutoplayAttempted(true)
-      
-      // Intentar autoplay después de la primera interacción
-      setTimeout(() => {
-        if (audioRef.current && !isPlaying) {
-          console.log('Intentando autoplay después de interacción del usuario')
-          audioRef.current.play().then(() => {
-            setIsPlaying(true)
-            console.log('Autoplay exitoso después de interacción')
-          }).catch((error) => {
-            console.log('Autoplay falló incluso después de interacción:', error)
-          })
-        }
-      }, 500)
-    }
-  }, [hasUserInteracted, autoplayAttempted, isPlaying])
-
   // Effect para configurar la canción aleatoria inicial
   useEffect(() => {
     // Seleccionar una canción aleatoria al cargar
@@ -351,6 +341,19 @@ export default function Header() {
       audioRef.current.volume = volume
     }
   }, [volume])
+
+  // Registrar función global para pausar el header
+  useEffect(() => {
+    window.__pauseHeaderPlayer = () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        setIsPlaying(false);
+      }
+    };
+    return () => {
+      window.__pauseHeaderPlayer = undefined;
+    };
+  }, []);
 
   return (
     <>
@@ -607,7 +610,9 @@ export default function Header() {
                     <img src={item.image} alt={item.title} className="w-16 h-16 rounded object-cover border" />
                     <div className="flex-1 min-w-0">
                       <div className="font-medium text-sm">{item.title}</div>
-                      <div className="text-sm text-gray-500">Talla: {item.size}</div>
+                      {item.size && item.size !== 'Única' && (
+                        <div className="text-sm text-gray-500">Talla: {item.size}</div>
+                      )}
                       <div className="flex items-center justify-between mt-1">
                         <div className="text-sm text-brand-600 font-semibold">S/. {item.price.toFixed(2)}</div>
                         <div className="flex items-center gap-2">
