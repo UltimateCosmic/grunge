@@ -7,7 +7,42 @@ const nextConfig = {
     ignoreBuildErrors: true,
   },
   images: {
-    unoptimized: false,
+    unoptimized: false, // Habilitar optimización
+    domains: [
+      'api-v3.findify.io',
+      'www.bandmerch.com',
+      'bandmerch.com',
+      'cdn.findify.io',
+      'rockabilia.com',
+      'www.rockabilia.com',
+    ],
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: '**.findify.io',
+        port: '',
+        pathname: '**',
+      },
+      {
+        protocol: 'https',
+        hostname: '**.bandmerch.com',
+        port: '',
+        pathname: '**',
+      },
+      {
+        protocol: 'https',
+        hostname: '**.rockabilia.com',
+        port: '',
+        pathname: '**',
+      },
+      {
+        protocol: 'http',
+        hostname: '**.findify.io',
+        port: '',
+        pathname: '**',
+      },
+    ],
+    formats: ['image/avif', 'image/webp'],
   },
 }
 

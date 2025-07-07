@@ -4,6 +4,7 @@ import Image from "next/image"
 import Link from "next/link"
 import { ShoppingCart } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { useImage } from "@/hooks/use-image"
 
 // Función para generar slug desde la URL del producto
 const generateSlug = (url: string): string => {
@@ -53,8 +54,14 @@ interface ProductCardProps {
 }
 
 export default function ProductCard({ product, className = "" }: ProductCardProps) {
+  const imageHook = useImage({ 
+    src: product.image || "/placeholder.svg",
+    fallback: "/placeholder.svg"
+  })
+  
   console.log('ProductCard recibió producto:', product)
   console.log('URL del producto:', product.url)
+  console.log('URL de imagen:', product.image)
   
   const productSlug = generateSlug(product.url || '')
   console.log('Slug generado:', productSlug)
@@ -64,16 +71,40 @@ export default function ProductCard({ product, className = "" }: ProductCardProp
       <div
         className={`group bg-white border border-gray-200 rounded-lg overflow-hidden hover:shadow-xl transition-all duration-300 flex flex-col h-full min-h-[420px] ${className}`}
       >
-        <div className="relative overflow-hidden p-4 flex items-center justify-center min-h-[220px]">
-          <Image
-            src={product.image || "/placeholder.svg"}
-            alt={product.name}
-            width={240}
-            height={240}
-            className="max-w-full max-h-56 object-contain transition-transform duration-300 group-hover:scale-105"
-          />
+        <div className="relative overflow-hidden p-4 flex items-center justify-center min-h-[220px] bg-gray-50">
+          {!imageHook.error ? (
+            <>
+              {imageHook.loading && (
+                <div className="absolute inset-0 flex items-center justify-center bg-gray-100 z-10">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-500"></div>
+                  {imageHook.usingProxy && (
+                    <div className="absolute bottom-2 right-2 text-xs text-gray-500 bg-white px-1 rounded">
+                      Proxy
+                    </div>
+                  )}
+                </div>
+              )}
+              <Image
+                src={imageHook.src}
+                alt={product.name}
+                width={240}
+                height={240}
+                className="max-w-full max-h-56 object-contain transition-transform duration-300 group-hover:scale-105"
+                onError={imageHook.onError}
+                onLoad={imageHook.onLoad}
+                unoptimized={imageHook.usingProxy} // Solo desoptimizar si usa proxy
+              />
+            </>
+          ) : (
+            <div className="flex items-center justify-center w-60 h-56 bg-gray-200 rounded-lg">
+              <div className="text-center p-4">
+                <div className="text-gray-400 text-sm mb-2">Imagen no disponible</div>
+                <div className="text-xs text-gray-300 line-clamp-2">{product.name}</div>
+              </div>
+            </div>
+          )}
           {product.isOnSale && (
-            <div className="absolute top-3 left-3 bg-brand-500 text-white px-2 py-1 rounded-full text-xs">
+            <div className="absolute top-3 left-3 bg-brand-500 text-white px-2 py-1 rounded-full text-xs z-20">
               OFERTA
             </div>
           )}
