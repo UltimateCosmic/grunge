@@ -3,7 +3,7 @@ import { Facebook, Instagram, Youtube, Mail, Phone, MapPin } from "lucide-react"
 
 export default function Footer() {
   return (
-    <footer className="bg-black border-t border-gray-800">
+    <footer className="relative bg-black border-t border-gray-800 overflow-hidden">
       <div className="container mx-auto px-4 py-12">
         <div className="grid md:grid-cols-4 gap-8">
           {/* Brand */}
@@ -21,7 +21,7 @@ export default function Footer() {
               </Link>
               <Link href="#" className="text-gray-400 hover:text-brand-500 transition-colors">
                 <Instagram className="h-5 w-5" />
-              </Link>              
+              </Link>
               <Link href="#" className="text-gray-400 hover:text-brand-500 transition-colors">
                 <Youtube className="h-5 w-5" />
               </Link>
@@ -32,17 +32,14 @@ export default function Footer() {
           <div className="space-y-4">
             <h3 className="text-white font-aton uppercase text-2xl">Enlaces Rápidos</h3>
             <div className="space-y-2">
-              <Link href="/bandas" className="block text-gray-400 hover:text-white transition-colors text-sm">
-                Todas las Bandas
+              <Link href="/productos" className="block text-gray-400 hover:text-white transition-colors text-sm">
+                Productos
               </Link>
               <Link href="/conciertos" className="block text-gray-400 hover:text-white transition-colors text-sm">
                 Próximos Conciertos
               </Link>
-              <Link href="/conciertos" className="block text-gray-400 hover:text-white transition-colors text-sm">
-                Próximos Conciertos
-              </Link>
-              <Link href="/nuevos" className="block text-gray-400 hover:text-white transition-colors text-sm">
-                Productos Nuevos
+              <Link href="/nosotros" className="block text-gray-400 hover:text-white transition-colors text-sm">
+                Nosotros
               </Link>
             </div>
           </div>
@@ -59,9 +56,6 @@ export default function Footer() {
               </Link>
               <Link href="/tallas" className="block text-gray-400 hover:text-white transition-colors text-sm">
                 Guía de Tallas
-              </Link>
-              <Link href="/contacto" className="block text-gray-400 hover:text-white transition-colors text-sm">
-                Contactanos
               </Link>
             </div>
           </div>
@@ -88,10 +82,10 @@ export default function Footer() {
 
         {/* Bottom bar */}
         <div className="border-t border-gray-800 mt-8 pt-8 flex flex-col md:flex-row justify-between items-center">
-            <p className="text-gray-400 text-sm">
+          <p className="text-gray-400 text-sm">
             © 2025 Grunge. Todos los derechos reservados. <br />
             Creado por Johan Amador <a href="https://cosmodev.me" target="_blank" rel="noopener noreferrer" className="underline hover:text-white">@cosmodev</a>
-            </p>
+          </p>
           <div className="flex space-x-6 mt-4 md:mt-0">
             <Link href="/privacidad" className="text-gray-400 hover:text-white transition-colors text-sm">
               Política de Privacidad
@@ -102,6 +96,13 @@ export default function Footer() {
           </div>
         </div>
       </div>
+      {/* Marca de agua: calavera reflejada */}
+      <img
+        src="/grunge-skull.png"
+        alt="Grunge Skull Watermark"
+        className="pointer-events-none select-none absolute top-1/2 right-[-100px] w-60 md:w-[400px] opacity-20 invert scale-x-[-1] z-0 translate-y-[-60%]"
+        style={{ maxWidth: 'none', maxHeight: '120%', objectFit: 'contain' }}
+      />
     </footer>
   )
 }

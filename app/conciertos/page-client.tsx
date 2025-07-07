@@ -163,7 +163,7 @@ export default function ConcertosPage() {
               <div className="rounded-3xl shadow-2xl overflow-hidden">
                 {/* Concert Header */}
                 <div
-                  className="relative h-80 md:h-96 flex items-center justify-center text-white"
+                  className="relative h-[28rem] md:h-96 flex items-center justify-center text-white px-4 py-8 md:py-0"
                 >
                   <div
                     className="absolute inset-0 opacity-100"
@@ -181,7 +181,7 @@ export default function ConcertosPage() {
                       alt={`${concert.band} logo`}
                       width={400}
                       height={160}
-                      className="h-24 md:h-32 w-auto object-contain mx-auto"
+                      className="h-28 md:h-32 w-auto object-contain mx-auto"
                     />
 
                     <div className="space-y-4">
@@ -196,32 +196,31 @@ export default function ConcertosPage() {
                         </div>
                       </div>
 
-                      <p className="text-xl max-w-2xl mx-auto">
+                      <p className="text-lg md:text-xl max-w-2xl mx-auto px-1">
                         {concert.message}
                       </p>
 
-                      <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                        <Button
-                          size="lg"
-                          style={{ backgroundColor: concert.color }}
-                          className="text-white px-8 border-0 shadow-lg hover:scale-105 hover:shadow-xl transition-all duration-200"
-                          onClick={() => navigateToProducts(concert.band)}
-                        >
-                          Ver Colección de {concert.band}
-                        </Button>
+                      <div className="flex flex-col sm:flex-row gap-4 justify-center pt-2">                          <Button
+                            size="lg"
+                            style={{ backgroundColor: concert.color }}
+                            className="text-white px-6 sm:px-8 border-0 shadow-lg hover:scale-105 hover:shadow-xl transition-all duration-200 text-sm sm:text-base"
+                            onClick={() => navigateToProducts(concert.band)}
+                          >
+                            Ver Colección
+                          </Button>
 
                         {concert.ticketUrl && (
                           <Button
                             variant="outline"
                             size="lg"
-                            className="border-white text-white hover:bg-white hover:text-black bg-transparent group"
+                            className="border-white text-white hover:bg-white hover:text-black bg-transparent group text-sm sm:text-base"
                             asChild
                           >
                             <a
                               href={concert.ticketUrl}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="flex items-center gap-2"
+                              className="flex items-center gap-1 sm:gap-2"
                             >
                               <Ticket className="w-5 h-5" />
                               Comprar en
@@ -240,19 +239,19 @@ export default function ConcertosPage() {
                   </div>
                 </div>
 
-                <div className="bg-white p-8 md:p-12">
-                  <div className="grid md:grid-cols-2 gap-12">
+                <div className="bg-white p-5 md:p-12">
+                  <div className="grid md:grid-cols-2 gap-8 md:gap-12">
                     {/* Popular Songs */}
                     {concert.spotifyId ? (
-                      <div className="w-full flex flex-col items-center">
+                      <div className="h-full flex flex-col items-center">
                         <iframe
                           src={`https://open.spotify.com/embed/artist/${concert.spotifyId}?utm_source=generator&theme=0`}
                           width="100%"
-                          height="380"
+                          height="360"
                           frameBorder="0"
                           allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
                           loading="lazy"
-                          className="rounded-xl shadow-lg border border-gray-200"
+                          className="rounded-xl shadow-lg"
                           title={`Spotify Player - ${concert.band}`}
                         ></iframe>
                       </div>
@@ -305,8 +304,8 @@ export default function ConcertosPage() {
 
                   {/* Merch Collection */}
                   <div className="mt-12 pt-8 border-t border-gray-200">
-                    <div className="flex items-center justify-between mb-8">
-                      <h3 className="text-3xl font-bold text-gray-900">
+                    <div className="flex items-center justify-between mb-6">
+                      <h3 className="text-2xl md:text-3xl font-bold text-gray-900">
                         La Colección de {concert.band}
                       </h3>
                       <Button
@@ -319,11 +318,11 @@ export default function ConcertosPage() {
                     </div>
 
                     {loadingProducts[concert.band] ? (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
+                      <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3 md:gap-6">
                         {[1, 2, 3, 4].map((i) => (
                           <div key={i} className="bg-gray-100 rounded-lg overflow-hidden">
-                            <div className="w-full h-64 bg-gray-200 animate-pulse" />
-                            <div className="p-4 space-y-3">
+                            <div className="w-full h-40 md:h-64 bg-gray-200 animate-pulse" />
+                            <div className="p-3 md:p-4 space-y-2 md:space-y-3">
                               <div className="h-4 bg-gray-200 rounded animate-pulse w-3/4" />
                               <div className="h-4 bg-gray-200 rounded animate-pulse w-1/2" />
                               <div className="h-6 bg-gray-200 rounded animate-pulse w-full" />
@@ -332,7 +331,7 @@ export default function ConcertosPage() {
                         ))}
                       </div>
                     ) : products[concert.band] && products[concert.band].length > 0 ? (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
+                      <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3 md:gap-6">
                         {products[concert.band].slice(0, 4).map((product) => (
                           <ProductCard key={product.id} product={product} />
                         ))}

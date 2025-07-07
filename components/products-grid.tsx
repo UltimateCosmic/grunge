@@ -804,14 +804,14 @@ export default function ProductsGrid() {
               </div>
               
               {/* Grid de esqueletos de productos */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-4">
+              <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 mt-4">
                 {Array.from({ length: 6 }).map((_, index) => (
                   <div 
                     key={`skeleton-${index}`} 
-                    className="bg-white border border-gray-200 rounded-lg overflow-hidden p-4"
+                    className="bg-white border border-gray-200 rounded-lg overflow-hidden p-3 md:p-4"
                   >
-                    <div className="w-full h-48 bg-gray-200 rounded animate-pulse mb-4"></div>
-                    <div className="space-y-3">
+                    <div className="w-full h-32 md:h-48 bg-gray-200 rounded animate-pulse mb-3 md:mb-4"></div>
+                    <div className="space-y-2 md:space-y-3">
                       <div className="h-3 bg-gray-200 rounded animate-pulse w-1/4"></div>
                       <div className="h-5 bg-gray-200 rounded animate-pulse w-3/4"></div>
                       <div className="flex gap-1">
@@ -827,7 +827,7 @@ export default function ProductsGrid() {
             </>
           ) : (
             <>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
                 {mappedProducts.map((product: any) => (
                   <ProductCard
                     key={product.id}

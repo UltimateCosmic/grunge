@@ -10,7 +10,6 @@ export default function PopularBands() {
 
   return (
     <section className="py-16 bg-gray-50">
-      <div className="container mx-auto px-4">
         <div className="text-center mb-12">
           <h2 className="text-5xl md:text-6xl text-gray-900 mb-4 font-aton font-medium uppercase">Bandas Populares</h2>
           <p className="text-gray-600 text-lg max-w-2xl mx-auto">
@@ -20,7 +19,7 @@ export default function PopularBands() {
 
         {/* Scrolling logos */}
         <div className="relative overflow-hidden">
-          <div className="flex animate-scroll space-x-12 items-center">
+          <div className="flex md:animate-scroll animate-scroll-fast space-x-12 items-center">
             {/* First set */}
             {popularBands.map((band, index) => (
               <div
@@ -67,14 +66,6 @@ export default function PopularBands() {
             ))}
           </div>
         </div>
-
-        {/* Call to action */}
-        <div className="text-center mt-12">
-          <button className="bg-brand-500 hover:bg-brand-600 text-white px-8 py-3 rounded-lg transition-colors">
-            Ver Todas las Bandas
-          </button>
-        </div>
-      </div>
     </section>
   )
 }

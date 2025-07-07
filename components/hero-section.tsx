@@ -16,6 +16,8 @@ export default function HeroSection() {
   const [direction, setDirection] = useState<'next' | 'prev' | null>(null)
   const router = useRouter()
   const autoSlideTimeout = useRef<NodeJS.Timeout | null>(null)
+  // Estado para seleccionar una camiseta aleatoria para móvil
+  const [randomShirtIndex, setRandomShirtIndex] = useState(0)
 
   // Función para navegar a productos con filtro de banda
   const navigateToProducts = (bandName: string) => {
@@ -39,6 +41,14 @@ export default function HeroSection() {
   // Reiniciar contador de camisetas cuando cambie el slide
   useEffect(() => {
     setCurrentShirt(0)
+    // Seleccionar una camiseta aleatoria para la vista móvil
+    const concert = upcomingConcerts[currentSlide]
+    if (concert?.shirts?.length > 0) {
+      const randomIndex = Math.floor(Math.random() * Math.min(3, concert.shirts.length))
+      setRandomShirtIndex(randomIndex)
+    } else {
+      setRandomShirtIndex(0)
+    }
   }, [currentSlide])
 
   // Cambio automático de slide cada 5 segundos
@@ -162,53 +172,78 @@ export default function HeroSection() {
 
         {/* Right side - Shirts Preview */}
         {concert.shirts && concert.shirts.length > 0 && (
-          <div className="hidden md:block">
-            <div className="relative h-96 flex items-center justify-center">
-              <div className="relative w-full h-full flex items-center justify-center">
-                {concert.shirts.slice(0, 3).map((shirt, index) => {
-                  const positions = [
-                    { x: -120, y: 25, scale: 1.0, rotation: -12, zIndex: 2 },
-                    { x: 0, y: -20, scale: 1.2, rotation: 0, zIndex: 3 },
-                    { x: 120, y: 25, scale: 1.0, rotation: 12, zIndex: 2 },
-                  ]
-                  const currentPos = positions[index]
-                  const isActive = index === shirtIndex
+          <>
+            {/* Desktop shirts */}
+            <div className="hidden md:block">
+              <div className="relative h-96 flex items-center justify-center">
+                <div className="relative w-full h-full flex items-center justify-center">
+                  {concert.shirts.slice(0, 3).map((shirt, index) => {
+                    const positions = [
+                      { x: -120, y: 25, scale: 1.0, rotation: -12, zIndex: 2 },
+                      { x: 0, y: -20, scale: 1.2, rotation: 0, zIndex: 3 },
+                      { x: 120, y: 25, scale: 1.0, rotation: 12, zIndex: 2 },
+                    ]
+                    const currentPos = positions[index]
+                    const isActive = index === shirtIndex
 
-                  // Parallax para polos: primer polo baja, tercer polo sube
-                  const parallaxY = index === 0
-                    ? scrollY * 0.2  // Primer polo desciende (sin límites)
-                    : index === 2
-                      ? scrollY * -0.15 // Tercer polo asciende (sin límites)
-                      : 0 // Polo central sin parallax vertical
+                    // Parallax para polos: primer polo baja, tercer polo sube
+                    const parallaxY = index === 0
+                      ? scrollY * 0.2  // Primer polo desciende (sin límites)
+                      : index === 2
+                        ? scrollY * -0.15 // Tercer polo asciende (sin límites)
+                        : 0 // Polo central sin parallax vertical
 
-                  return (
-                    <div
-                      key={index}
-                      className="absolute transition-all duration-500 ease-out cursor-pointer group"
-                      style={{
-                        transform: `translateX(${currentPos.x}px) translateY(${currentPos.y + parallaxY}px) scale(${currentPos.scale}) rotateZ(${currentPos.rotation}deg)`,
-                        zIndex: isActive ? 10 : currentPos.zIndex,
-                        filter: `drop-shadow(25px 25px 20px rgba(0, 0, 0, 0.5))`,
-                      }}
-                      onClick={() => {
-                        setCurrentShirt(index)
-                        navigateToProducts(concert.band)
-                      }}
-                      onMouseEnter={() => setCurrentShirt(index)}
-                    >
-                      <Image
-                        src={shirt}
-                        alt={`${concert.band} shirt ${index + 1}`}
-                        width={350}
-                        height={420}
-                        className="object-contain transition-all duration-300 group-hover:scale-110 group-hover:-translate-y-3"
-                      />
-                    </div>
-                  )
-                })}
+                    return (
+                      <div
+                        key={index}
+                        className="absolute transition-all duration-500 ease-out cursor-pointer group"
+                        style={{
+                          transform: `translateX(${currentPos.x}px) translateY(${currentPos.y + parallaxY}px) scale(${currentPos.scale}) rotateZ(${currentPos.rotation}deg)`,
+                          zIndex: isActive ? 10 : currentPos.zIndex,
+                          filter: `drop-shadow(25px 25px 20px rgba(0, 0, 0, 0.5))`,
+                        }}
+                        onClick={() => {
+                          setCurrentShirt(index)
+                          navigateToProducts(concert.band)
+                        }}
+                        onMouseEnter={() => setCurrentShirt(index)}
+                      >
+                        <Image
+                          src={shirt}
+                          alt={`${concert.band} shirt ${index + 1}`}
+                          width={350}
+                          height={420}
+                          className="object-contain transition-all duration-300 group-hover:scale-110 group-hover:-translate-y-3"
+                        />
+                      </div>
+                    )
+                  })}
+                </div>
               </div>
             </div>
-          </div>
+            {/* Mobile shirts: parte inferior */}
+            <div className="md:hidden mt-0 -mb-8">
+              <div className="flex justify-center items-center">
+                {concert.shirts.length > 0 && (
+                  <div
+                    className="relative cursor-pointer transform transition-transform duration-300 hover:scale-105"
+                    onClick={() => navigateToProducts(concert.band)}
+                    style={{
+                      filter: `drop-shadow(8px 8px 15px rgba(0, 0, 0, 0.4))`,
+                    }}
+                  >
+                    <Image
+                      src={concert.shirts[randomShirtIndex]}
+                      alt={`${concert.band} shirt`}
+                      width={200}
+                      height={240}
+                      className="object-contain"
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+          </>
         )}
       </div>
     )
@@ -236,13 +271,12 @@ export default function HeroSection() {
               }}
             >
               {/* Div negro de fondo para evitar espacios blancos */}
-              <div className="absolute inset-0 bg-black" style={{ top: '-50%', height: '200%' }} />
-              <Image
-                src={currentConcert.image || "/placeholder.svg"}
-                alt={`${currentConcert.band} concert`}
-                fill
-                className="object-cover scale-115"
-              />
+              <div className="absolute inset-0 bg-black" style={{ top: '-50%', height: '200%' }} />            <Image
+              src={currentConcert.image || "/placeholder.svg"}
+              alt={`${currentConcert.band} concert`}
+              fill
+              className="object-cover scale-115 object-left md:object-center"
+            />
               <div className="absolute inset-0 bg-black/60" />
             </div>
             <div className="relative z-10 container mx-auto px-4 h-full flex items-center">
@@ -276,7 +310,7 @@ export default function HeroSection() {
                 src={nextConcert.image || "/placeholder.svg"}
                 alt={`${nextConcert.band} concert`}
                 fill
-                className="object-cover scale-115"
+                className="object-cover scale-115 object-left md:object-center"
               />
               <div className="absolute inset-0 bg-black/60" />
             </div>
@@ -303,7 +337,7 @@ export default function HeroSection() {
               src={currentConcert.image || "/placeholder.svg"}
               alt={`${currentConcert.band} concert`}
               fill
-              className="object-cover scale-115"
+              className="object-cover scale-115 object-left md:object-center"
             />
             <div className="absolute inset-0 bg-black/60" />
           </div>
@@ -317,14 +351,14 @@ export default function HeroSection() {
       {/* Navigation Arrows */}
       <button
         onClick={prevSlideFn}
-        className="absolute left-4 top-1/2 transform -translate-y-1/2 z-30 bg-black/50 hover:bg-black/70 text-white p-2 rounded-full transition-colors"
+        className="absolute left-4 md:top-1/2 md:transform-none bottom-6 md:bottom-auto z-30 bg-black/50 hover:bg-black/70 text-white p-2 rounded-full transition-colors"
         disabled={isTransitioning}
       >
         <ChevronLeft className="h-6 w-6" />
       </button>
       <button
         onClick={nextSlide}
-        className="absolute right-4 top-1/2 transform -translate-y-1/2 z-30 bg-black/50 hover:bg-black/70 text-white p-2 rounded-full transition-colors"
+        className="absolute right-4 md:top-1/2 md:transform-none bottom-6 md:bottom-auto z-30 bg-black/50 hover:bg-black/70 text-white p-2 rounded-full transition-colors"
         disabled={isTransitioning}
       >
         <ChevronRight className="h-6 w-6" />
