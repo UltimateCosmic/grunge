@@ -108,8 +108,8 @@ const config: Config = {
         "scroll-fast": "scroll-fast 15s linear infinite",
       },
       fontFamily: {
-        aton: ["Bebas Neue", "sans-serif"],
-        roboto: ["Roboto Flex", "sans-serif"],
+        aton: ["var(--font-aton)", "sans-serif"],
+        roboto: ["var(--font-roboto)", "sans-serif"],
       },
     },
   },

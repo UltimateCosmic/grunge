@@ -1,9 +1,10 @@
 import type { Metadata } from "next"
-import { Orbitron, Roboto_Flex } from "next/font/google"
+import { Bebas_Neue, Roboto_Flex } from "next/font/google"
 import "./globals.css"
 import RootLayoutClient from "./layout-client"
 
-const orbitron = Orbitron({
+const bebasNeue = Bebas_Neue({
+  weight: "400",
   subsets: ["latin"],
   variable: "--font-aton",
 })
@@ -32,7 +33,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="es">
-      <body className={`${orbitron.variable} ${robotoFlex.variable} font-roboto antialiased`}>
+      <body className={`${bebasNeue.variable} ${robotoFlex.variable} font-roboto antialiased`}>
         <RootLayoutClient>
           {children}
         </RootLayoutClient>
